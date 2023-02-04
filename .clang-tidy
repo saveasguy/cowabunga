@@ -58,7 +58,9 @@ Checks: >
   -misc-no-recursion,
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type,
-  -readability-identifier-length
+  -readability-identifier-length,
+  -modernize-pass-by-value,
+  -abseil-string-find-startswith
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
 
