@@ -33,15 +33,15 @@ SymbolicLexer &SymbolicLexer::operator=(const SymbolicLexer &rhs) {
   return *this;
 }
 
-Lexer *SymbolicLexer::AddAnalyzer(const LexemeAnalyzer *analyzer) {
-  analyzers_.push_back(std::unique_ptr<LexemeAnalyzer>{ analyzer->Clone() });
-  return this;
+Lexer &SymbolicLexer::AddAnalyzer(std::unique_ptr<LexemeAnalyzer> analyzer) {
+  analyzers_.push_back(std::move(analyzer));
+  return *this;
 }
 
-Token *SymbolicLexer::NextToken(std::istream &input) {
-  if (!input) { return new EofToken; }
+std::unique_ptr<Token> SymbolicLexer::NextToken(std::istream &input) {  
   SkipBlankSpace(input);
-  return GetBestMatchedToken(input);
+  if (!input) { return std::make_unique<EofToken>(); }
+  return std::unique_ptr<Token>{ GetBestMatchedToken(input) };
 }
 
 void SymbolicLexer::SkipBlankSpace(std::istream &input) {
@@ -52,7 +52,7 @@ void SymbolicLexer::SkipBlankSpace(std::istream &input) {
   input.unget();
 }
 
-Token *SymbolicLexer::GetBestMatchedToken(std::istream &input) {
+std::unique_ptr<Token> SymbolicLexer::GetBestMatchedToken(std::istream &input) {
   LexemeAnalyzer *matching_analyzer = nullptr;
   TokenPriority max_priority = TokenPriority::kUnmatched;
   char first_char = ' ';
@@ -62,7 +62,7 @@ Token *SymbolicLexer::GetBestMatchedToken(std::istream &input) {
     analyzer->Flush();
     TokenPriority current_priority = analyzer->CheckWholeWord(current_word);
     if (current_priority == TokenPriority::kUnmatched) { continue; }
-    if (current_priority > max_priority) {
+    if (current_priority >= max_priority) {
       matching_analyzer = analyzer.get();
       max_priority = current_priority;
     }
@@ -79,7 +79,7 @@ Token *SymbolicLexer::GetBestMatchedToken(std::istream &input) {
 }
 
 std::string SymbolicLexer::TryGetWordTail(std::istream &input,
-                                  LexemeAnalyzer *analyzer) {
+                                          LexemeAnalyzer *analyzer) {
   char current_char;
   std::string current_word;
   while (input.get(current_char) &&
@@ -90,12 +90,8 @@ std::string SymbolicLexer::TryGetWordTail(std::istream &input,
   return current_word;
 }
 
-Lexer *SymbolicLexer::Clone() const {
-  std::unique_ptr<Lexer> cloned{ new SymbolicLexer };
-  for (const auto &analyzer : analyzers_) {
-    cloned->AddAnalyzer(analyzer->Clone());
-  }
-  return cloned.release();
+std::unique_ptr<Lexer> SymbolicLexer::Clone() const {
+  return std::make_unique<SymbolicLexer>(*this);
 }
 
 }  // namespace kaleidoc

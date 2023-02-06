@@ -3,6 +3,7 @@
 #include <cctype>
 #include <iostream>
 #include <istream>
+#include <memory>
 
 #include "driver.h"
 #include "token.h"
@@ -23,14 +24,14 @@ TokenPriority IdentifierAnalyzer::CheckNextChar(char c) {
   return TokenPriority::kNormal;
 }
 
-Token *IdentifierAnalyzer::GetToken(const std::string &word) const {
-  return new IdentifierToken{ word };
+std::unique_ptr<Token> IdentifierAnalyzer::GetToken(const std::string &word) const {
+  return std::make_unique<IdentifierToken>(word);
 }
 
 void IdentifierAnalyzer::Flush() { flushed_ = true; }
 
-LexemeAnalyzer *IdentifierAnalyzer::Clone() const {
-  return new IdentifierAnalyzer;
+std::unique_ptr<LexemeAnalyzer> IdentifierAnalyzer::Clone() const {
+  return std::make_unique<IdentifierAnalyzer>(*this);
 }
 
 // Keyword analyzer
@@ -41,17 +42,17 @@ KeywordAnalyzer::KeywordAnalyzer(TokenId token_id, const std::string &keyword)
 TokenPriority KeywordAnalyzer::CheckNextChar(char c) {
   current_input_ += c;
   if (keyword_.find(current_input_) != 0) { return TokenPriority::kUnmatched; }
-  return TokenPriority::kKeyword;
+  return TokenPriority::kHigh;
 }
 
-Token *KeywordAnalyzer::GetToken(const std::string &word) const {
-  return new KeywordToken{ token_id_, word };
+std::unique_ptr<Token> KeywordAnalyzer::GetToken(const std::string &word) const {
+  return std::make_unique<KeywordToken>(token_id_, word);
 }
 
 void KeywordAnalyzer::Flush() { current_input_ = ""; }
 
-LexemeAnalyzer *KeywordAnalyzer::Clone() const {
-  return new KeywordAnalyzer{ token_id_, keyword_ };
+std::unique_ptr<LexemeAnalyzer> KeywordAnalyzer::Clone() const {
+  return std::make_unique<KeywordAnalyzer>(*this);
 }
 
 // Number analyzer
@@ -69,34 +70,12 @@ TokenPriority NumberAnalyzer::CheckNextChar(char c) {
   return TokenPriority::kNormal;
 }
 
-Token *NumberAnalyzer::GetToken(const std::string &word) const {
-  return new NumberToken{ word };
+std::unique_ptr<Token> NumberAnalyzer::GetToken(const std::string &word) const {
+  return std::make_unique<NumberToken>(word);
 }
 
 void NumberAnalyzer::Flush() { point_used_ = false; }
 
-LexemeAnalyzer *NumberAnalyzer::Clone() const { return new NumberAnalyzer; }
-
-// Binary operator analyzer
-
-BinaryOperatorAnalyzer::BinaryOperatorAnalyzer(const std::string &operation)
-    : operator_{ operation } {}
-
-TokenPriority BinaryOperatorAnalyzer::CheckNextChar(char c) {
-  current_input_ += c;
-  bool match = operator_.find(current_input_) == 0;
-  if (!match) { return TokenPriority::kUnmatched; }
-  return TokenPriority::kNormal;
-}
-
-Token *BinaryOperatorAnalyzer::GetToken(const std::string &word) const {
-  return new BinaryOperatorToken{ word };
-}
-
-void BinaryOperatorAnalyzer::Flush() { current_input_ = ""; }
-
-LexemeAnalyzer *BinaryOperatorAnalyzer::Clone() const {
-  return new BinaryOperatorAnalyzer{ operator_ };
-}
+std::unique_ptr<LexemeAnalyzer> NumberAnalyzer::Clone() const { return  std::make_unique<NumberAnalyzer>(*this); }
 
 }  // namespace kaleidoc

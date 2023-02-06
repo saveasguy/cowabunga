@@ -1,6 +1,7 @@
 #ifndef KALEIDOC_SRC_TOKEN_H_
 #define KALEIDOC_SRC_TOKEN_H_
 
+#include <memory>
 #include <string>
 
 #include "driver.h"
@@ -13,7 +14,7 @@ class EofToken : public Token {
 
   std::string GetValue() const noexcept override;
 
-  Token *Clone() const override;
+  std::unique_ptr<Token> Clone() const override;
 };
 
 class IdentifierToken : public Token {
@@ -24,7 +25,7 @@ class IdentifierToken : public Token {
 
   std::string GetValue() const noexcept override;
 
-  Token *Clone() const override;
+  std::unique_ptr<Token> Clone() const override;
 
  private:
   std::string name_;
@@ -38,7 +39,7 @@ class KeywordToken : public Token {
 
   std::string GetValue() const noexcept override;
 
-  Token *Clone() const override;
+  std::unique_ptr<Token> Clone() const override;
 
  private:
   TokenId token_id_;
@@ -53,24 +54,10 @@ class NumberToken : public Token {
 
   std::string GetValue() const noexcept override;
 
-  Token *Clone() const override;
+  std::unique_ptr<Token> Clone() const override;
 
  private:
   std::string value_;
-};
-
-class BinaryOperatorToken : public Token {
- public:
-  BinaryOperatorToken(const std::string &operation);
-
-  TokenId GetToken() const noexcept override;
-
-  std::string GetValue() const noexcept override;
-
-  Token *Clone() const override;
-
- private:
-  std::string operator_;
 };
 
 }  // namespace kaleidoc

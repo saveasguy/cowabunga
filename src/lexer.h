@@ -35,16 +35,16 @@ class SymbolicLexer : public Lexer {
 
   SymbolicLexer &operator=(SymbolicLexer &&rhs) noexcept = default;
 
-  Lexer *AddAnalyzer(const LexemeAnalyzer *analyzer) override;
+  Lexer &AddAnalyzer(std::unique_ptr<LexemeAnalyzer> analyzer) override;
 
-  Token *NextToken(std::istream &input) override;
+  std::unique_ptr<Token> NextToken(std::istream &input) override;
 
-  Lexer *Clone() const override;
+  std::unique_ptr<Lexer> Clone() const override;
 
   ~SymbolicLexer() override = default;
 
  private:
-  Token *GetBestMatchedToken(std::istream &input);
+  std::unique_ptr<Token> GetBestMatchedToken(std::istream &input);
 
   static std::string TryGetWordTail(std::istream &input, LexemeAnalyzer *analyzer);
 

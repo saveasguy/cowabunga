@@ -2,6 +2,7 @@
 #define KALEIDOC_SRC_DRIVER_H_
 
 #include <istream>
+#include <memory>
 #include <string>
 
 namespace kaleidoc {
@@ -12,14 +13,16 @@ enum TokenId {
   kExternId = 2,
   kIdentifierId = 3,
   kNumberId = 4,
-  kBinaryOperationId = 5
+  kAssignmentId = 5,
+  kPlusId = 6,
+  kMinusId = 7
 };
 
-enum TokenPriority { kUnmatched = 0, kNormal = 1, kKeyword = 2 };
+enum TokenPriority { kUnmatched = 0, kNormal = 1, kHigh = 2 };
 
 template<class T> class IClonable {
  public:
-  virtual T *Clone() const = 0;
+  virtual std::unique_ptr<T> Clone() const = 0;
 };
 
 class Token : public IClonable<Token> {
@@ -39,7 +42,7 @@ class LexemeAnalyzer : public IClonable<LexemeAnalyzer> {
 
   virtual TokenPriority CheckNextChar(char c) = 0;
 
-  virtual Token *GetToken(const std::string &word) const = 0;
+  virtual std::unique_ptr<Token> GetToken(const std::string &word) const = 0;
 
   virtual void Flush() = 0;
 
@@ -48,9 +51,9 @@ class LexemeAnalyzer : public IClonable<LexemeAnalyzer> {
 
 class Lexer : public IClonable<Lexer> {
  public:
-  virtual Lexer *AddAnalyzer(const LexemeAnalyzer *ananlyer) = 0;
+  virtual Lexer &AddAnalyzer(std::unique_ptr<LexemeAnalyzer> analyzer) = 0;
 
-  virtual Token *NextToken(std::istream &input) = 0;
+  virtual std::unique_ptr<Token> NextToken(std::istream &input) = 0;
 
   virtual ~Lexer() = default;
 };

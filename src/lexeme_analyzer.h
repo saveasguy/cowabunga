@@ -1,6 +1,9 @@
 #ifndef KALEIDOC_SRC_LEXEME_ANALYZER_H_
 #define KALEIDOC_SRC_LEXEME_ANALYZER_H_
 
+#include <memory>
+#include <string>
+
 #include "driver.h"
 
 namespace kaleidoc {
@@ -9,11 +12,11 @@ class IdentifierAnalyzer : public LexemeAnalyzer {
  public:
   TokenPriority CheckNextChar(char c) override;
 
-  Token *GetToken(const std::string &word) const override;
+  std::unique_ptr<Token> GetToken(const std::string &word) const override;
 
   void Flush() override;
 
-  LexemeAnalyzer *Clone() const override;
+  std::unique_ptr<LexemeAnalyzer> Clone() const override;
 
  private:
   bool flushed_ = true;
@@ -25,11 +28,11 @@ class KeywordAnalyzer : public LexemeAnalyzer {
 
   TokenPriority CheckNextChar(char c) override;
 
-  Token *GetToken(const std::string &word) const override;
+  std::unique_ptr<Token> GetToken(const std::string &word) const override;
 
   void Flush() override;
 
-  LexemeAnalyzer *Clone() const override;
+  std::unique_ptr<LexemeAnalyzer> Clone() const override;
 
  private:
   TokenId token_id_;
@@ -41,31 +44,14 @@ class NumberAnalyzer : public LexemeAnalyzer {
  public:
   TokenPriority CheckNextChar(char c) override;
 
-  Token *GetToken(const std::string &word) const override;
+  std::unique_ptr<Token> GetToken(const std::string &word) const override;
 
   void Flush() override;
 
-  LexemeAnalyzer *Clone() const override;
+  std::unique_ptr<LexemeAnalyzer> Clone() const override;
 
  private:
   bool point_used_ = false;
-};
-
-class BinaryOperatorAnalyzer : public LexemeAnalyzer {
- public:
-  BinaryOperatorAnalyzer(const std::string &operation);
-
-  TokenPriority CheckNextChar(char c) override;
-
-  Token *GetToken(const std::string &word) const override;
-
-  void Flush() override;
-
-  LexemeAnalyzer *Clone() const override;
-
- private:
-  std::string operator_;
-  std::string current_input_;
 };
 
 }  // namespace kaleidoc

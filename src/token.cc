@@ -1,5 +1,6 @@
 #include "token.h"
 
+#include <memory>
 #include <string>
 
 #include "driver.h"
@@ -16,7 +17,9 @@ TokenId IdentifierToken::GetToken() const noexcept {
 
 std::string IdentifierToken::GetValue() const noexcept { return name_; }
 
-Token *IdentifierToken::Clone() const { return new IdentifierToken{ name_ }; }
+std::unique_ptr<Token> IdentifierToken::Clone() const {
+  return std::make_unique<IdentifierToken>(*this);
+}
 
 // Keyword token
 
@@ -27,8 +30,8 @@ TokenId KeywordToken::GetToken() const noexcept { return token_id_; }
 
 std::string KeywordToken::GetValue() const noexcept { return name_; }
 
-Token *KeywordToken::Clone() const {
-  return new KeywordToken{ token_id_, name_ };
+std::unique_ptr<Token> KeywordToken::Clone() const {
+  return std::make_unique<KeywordToken>(*this);
 }
 
 // Number token
@@ -39,33 +42,18 @@ TokenId NumberToken::GetToken() const noexcept { return TokenId::kNumberId; }
 
 std::string NumberToken::GetValue() const noexcept { return value_; }
 
-Token *NumberToken::Clone() const { return new NumberToken{ value_ }; }
-
-// Binary operator token
-
-BinaryOperatorToken::BinaryOperatorToken(const std::string &operation)
-    : operator_{ operation } {}
-
-TokenId BinaryOperatorToken::GetToken() const noexcept {
-  return TokenId::kBinaryOperationId;
-}
-
-std::string BinaryOperatorToken::GetValue() const noexcept { return operator_; }
-
-Token *BinaryOperatorToken::Clone() const {
-  return new NumberToken{ operator_ };
+std::unique_ptr<Token> NumberToken::Clone() const {
+  return std::make_unique<NumberToken>(*this);
 }
 
 // EOF token
 
-TokenId EofToken::GetToken() const noexcept {
-  return TokenId::kEofId;
-}
+TokenId EofToken::GetToken() const noexcept { return TokenId::kEofId; }
 
 std::string EofToken::GetValue() const noexcept { return "EOF"; }
 
-Token *EofToken::Clone() const {
-  return new EofToken;
+std::unique_ptr<Token> EofToken::Clone() const {
+  return std::make_unique<EofToken>(*this);
 }
 
 }  // namespace kaleidoc
