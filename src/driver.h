@@ -8,17 +8,17 @@
 namespace kaleidoc {
 
 enum TokenId {
-  kEofId = 0,
-  kDefId = 1,
-  kExternId = 2,
-  kIdentifierId = 3,
-  kNumberId = 4,
-  kAssignmentId = 5,
-  kPlusId = 6,
-  kMinusId = 7
+  kEof = 0,
+  kDef = 1,
+  kExtern = 2,
+  kIdentifier = 3,
+  kIntegralNumber = 4,
+  kAssignment = 5,
+  kPlus = 6,
+  kMinus = 7
 };
 
-enum TokenPriority { kUnmatched = 0, kNormal = 1, kHigh = 2 };
+enum TokenPriorityId { kUnmatched = 0, kNormal = 1, kHigh = 2 };
 
 template<class T> class IClonable {
  public:
@@ -27,7 +27,7 @@ template<class T> class IClonable {
 
 class Token : public IClonable<Token> {
  public:
-  virtual TokenId GetToken() const noexcept = 0;
+  virtual TokenId GetTokenId() const noexcept = 0;
 
   virtual std::string GetValue() const noexcept = 0;
 
@@ -38,11 +38,11 @@ class Token : public IClonable<Token> {
 
 class LexemeAnalyzer : public IClonable<LexemeAnalyzer> {
  public:
-  TokenPriority CheckWholeWord(const std::string &word);
+  TokenPriorityId CheckWholeWord(const std::string &word);
 
-  virtual TokenPriority CheckNextChar(char c) = 0;
+  virtual TokenPriorityId CheckNextChar(char c) = 0;
 
-  virtual std::unique_ptr<Token> GetToken(const std::string &word) const = 0;
+  virtual std::unique_ptr<Token> GetTokenId(const std::string &word) const = 0;
 
   virtual void Flush() = 0;
 

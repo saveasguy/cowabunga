@@ -54,14 +54,14 @@ void SymbolicLexer::SkipBlankSpace(std::istream &input) {
 
 std::unique_ptr<Token> SymbolicLexer::GetBestMatchedToken(std::istream &input) {
   LexemeAnalyzer *matching_analyzer = nullptr;
-  TokenPriority max_priority = TokenPriority::kUnmatched;
+  TokenPriorityId max_priority = TokenPriorityId::kUnmatched;
   char first_char = ' ';
   input.get(first_char);
   std::string current_word = { first_char };
   for (auto &analyzer : analyzers_) {
     analyzer->Flush();
-    TokenPriority current_priority = analyzer->CheckWholeWord(current_word);
-    if (current_priority == TokenPriority::kUnmatched) { continue; }
+    TokenPriorityId current_priority = analyzer->CheckWholeWord(current_word);
+    if (current_priority == TokenPriorityId::kUnmatched) { continue; }
     if (current_priority >= max_priority) {
       matching_analyzer = analyzer.get();
       max_priority = current_priority;
@@ -75,7 +75,7 @@ std::unique_ptr<Token> SymbolicLexer::GetBestMatchedToken(std::istream &input) {
   if (!matching_analyzer) {
     throw UnknownLexemeException{ "Unknown lexeme: " + current_word };
   }
-  return matching_analyzer->GetToken(current_word);
+  return matching_analyzer->GetTokenId(current_word);
 }
 
 std::string SymbolicLexer::TryGetWordTail(std::istream &input,
@@ -83,7 +83,7 @@ std::string SymbolicLexer::TryGetWordTail(std::istream &input,
   char current_char;
   std::string current_word;
   while (input.get(current_char) &&
-         analyzer->CheckNextChar(current_char) != TokenPriority::kUnmatched) {
+         analyzer->CheckNextChar(current_char) != TokenPriorityId::kUnmatched) {
     current_word += current_char;
   }
   input.unget();

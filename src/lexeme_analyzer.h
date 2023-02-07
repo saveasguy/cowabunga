@@ -10,9 +10,9 @@ namespace kaleidoc {
 
 class IdentifierAnalyzer : public LexemeAnalyzer {
  public:
-  TokenPriority CheckNextChar(char c) override;
+  TokenPriorityId CheckNextChar(char c) override;
 
-  std::unique_ptr<Token> GetToken(const std::string &word) const override;
+  std::unique_ptr<Token> GetTokenId(const std::string &word) const override;
 
   void Flush() override;
 
@@ -26,9 +26,9 @@ class KeywordAnalyzer : public LexemeAnalyzer {
  public:
   KeywordAnalyzer(TokenId token_id, const std::string &keyword);
 
-  TokenPriority CheckNextChar(char c) override;
+  TokenPriorityId CheckNextChar(char c) override;
 
-  std::unique_ptr<Token> GetToken(const std::string &word) const override;
+  std::unique_ptr<Token> GetTokenId(const std::string &word) const override;
 
   void Flush() override;
 
@@ -40,18 +40,15 @@ class KeywordAnalyzer : public LexemeAnalyzer {
   std::string current_input_;
 };
 
-class NumberAnalyzer : public LexemeAnalyzer {
+class IntegralNumberAnalyzer : public LexemeAnalyzer {
  public:
-  TokenPriority CheckNextChar(char c) override;
+  TokenPriorityId CheckNextChar(char c) override;
 
-  std::unique_ptr<Token> GetToken(const std::string &word) const override;
+  std::unique_ptr<Token> GetTokenId(const std::string &word) const override;
 
   void Flush() override;
 
   std::unique_ptr<LexemeAnalyzer> Clone() const override;
-
- private:
-  bool point_used_ = false;
 };
 
 }  // namespace kaleidoc

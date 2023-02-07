@@ -9,17 +9,17 @@
 int main(int argc, char **argv) {
   kaleidoc::SymbolicLexer lexer{};
   lexer.AddAnalyzer(std::make_unique<kaleidoc::IdentifierAnalyzer>())
-      .AddAnalyzer(std::make_unique<kaleidoc::NumberAnalyzer>())
+      .AddAnalyzer(std::make_unique<kaleidoc::IntegralNumberAnalyzer>())
       .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kAssignmentId, "="))
+          kaleidoc::TokenId::kAssignment, "="))
       .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kPlusId, "+"))
+          kaleidoc::TokenId::kPlus, "+"))
       .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kMinusId, "-"))
+          kaleidoc::TokenId::kMinus, "-"))
       .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kDefId, "def"))
+          kaleidoc::TokenId::kDef, "def"))
       .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kExternId, "extern"));
+          kaleidoc::TokenId::kExtern, "extern"));
 
   std::istream *input = &std::cin;
   std::ifstream script;
@@ -32,8 +32,8 @@ int main(int argc, char **argv) {
   std::unique_ptr<kaleidoc::Token> token = nullptr;
   do {
     token = lexer.NextToken(*input);
-    std::cout << token->GetValue() << "(" << token->GetToken() << ")"
+    std::cout << token->GetValue() << "(" << token->GetTokenId() << ")"
               << std::endl;
-  } while (token->GetToken() != kaleidoc::kEofId);
+  } while (token->GetTokenId() != kaleidoc::TokenId::kEof);
   return 0;
 }

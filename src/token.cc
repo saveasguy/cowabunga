@@ -11,8 +11,8 @@ namespace kaleidoc {
 
 IdentifierToken::IdentifierToken(const std::string &name) : name_{ name } {}
 
-TokenId IdentifierToken::GetToken() const noexcept {
-  return TokenId::kIdentifierId;
+TokenId IdentifierToken::GetTokenId() const noexcept {
+  return TokenId::kIdentifier;
 }
 
 std::string IdentifierToken::GetValue() const noexcept { return name_; }
@@ -26,7 +26,7 @@ std::unique_ptr<Token> IdentifierToken::Clone() const {
 KeywordToken::KeywordToken(TokenId token_id, const std::string &name)
     : token_id_{ token_id }, name_{ name } {}
 
-TokenId KeywordToken::GetToken() const noexcept { return token_id_; }
+TokenId KeywordToken::GetTokenId() const noexcept { return token_id_; }
 
 std::string KeywordToken::GetValue() const noexcept { return name_; }
 
@@ -34,21 +34,24 @@ std::unique_ptr<Token> KeywordToken::Clone() const {
   return std::make_unique<KeywordToken>(*this);
 }
 
-// Number token
+// Integral number token
 
-NumberToken::NumberToken(const std::string &value) : value_{ value } {}
+IntegralNumberToken::IntegralNumberToken(const std::string &value)
+    : value_{ value } {}
 
-TokenId NumberToken::GetToken() const noexcept { return TokenId::kNumberId; }
+TokenId IntegralNumberToken::GetTokenId() const noexcept {
+  return TokenId::kIntegralNumber;
+}
 
-std::string NumberToken::GetValue() const noexcept { return value_; }
+std::string IntegralNumberToken::GetValue() const noexcept { return value_; }
 
-std::unique_ptr<Token> NumberToken::Clone() const {
-  return std::make_unique<NumberToken>(*this);
+std::unique_ptr<Token> IntegralNumberToken::Clone() const {
+  return std::make_unique<IntegralNumberToken>(*this);
 }
 
 // EOF token
 
-TokenId EofToken::GetToken() const noexcept { return TokenId::kEofId; }
+TokenId EofToken::GetTokenId() const noexcept { return TokenId::kEof; }
 
 std::string EofToken::GetValue() const noexcept { return "EOF"; }
 

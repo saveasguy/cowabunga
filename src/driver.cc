@@ -4,11 +4,9 @@
 
 namespace kaleidoc {
 
-TokenPriority LexemeAnalyzer::CheckWholeWord(const std::string &word) {
-  TokenPriority priority = TokenPriority::kUnmatched;
-  for (auto c: word) {
-    priority = CheckNextChar(c);
-  }
+TokenPriorityId LexemeAnalyzer::CheckWholeWord(const std::string &word) {
+  TokenPriorityId priority = TokenPriorityId::kUnmatched;
+  for (auto c : word) { priority = CheckNextChar(c); }
   return priority;
 }
 

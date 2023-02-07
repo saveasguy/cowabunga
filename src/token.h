@@ -10,7 +10,7 @@ namespace kaleidoc {
 
 class EofToken : public Token {
  public:
-  TokenId GetToken() const noexcept override;
+  TokenId GetTokenId() const noexcept override;
 
   std::string GetValue() const noexcept override;
 
@@ -21,7 +21,7 @@ class IdentifierToken : public Token {
  public:
   IdentifierToken(const std::string &name);
 
-  TokenId GetToken() const noexcept override;
+  TokenId GetTokenId() const noexcept override;
 
   std::string GetValue() const noexcept override;
 
@@ -35,7 +35,7 @@ class KeywordToken : public Token {
  public:
   KeywordToken(TokenId token_id, const std::string &name);
 
-  TokenId GetToken() const noexcept override;
+  TokenId GetTokenId() const noexcept override;
 
   std::string GetValue() const noexcept override;
 
@@ -46,11 +46,11 @@ class KeywordToken : public Token {
   std::string name_;
 };
 
-class NumberToken : public Token {
+class IntegralNumberToken : public Token {
  public:
-  NumberToken(const std::string &value);
+  IntegralNumberToken(const std::string &value);
 
-  TokenId GetToken() const noexcept override;
+  TokenId GetTokenId() const noexcept override;
 
   std::string GetValue() const noexcept override;
 
