@@ -1,6 +1,7 @@
 #ifndef KALEIDOC_SRC_TOKEN_H_
 #define KALEIDOC_SRC_TOKEN_H_
 
+#include <map>
 #include <memory>
 #include <string>
 
@@ -12,7 +13,7 @@ class EofToken : public Token {
  public:
   TokenId GetTokenId() const noexcept override;
 
-  std::string GetValue() const noexcept override;
+  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
 
   std::unique_ptr<Token> Clone() const override;
 };
@@ -23,12 +24,12 @@ class IdentifierToken : public Token {
 
   TokenId GetTokenId() const noexcept override;
 
-  std::string GetValue() const noexcept override;
+  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
 
   std::unique_ptr<Token> Clone() const override;
 
  private:
-  std::string name_;
+  std::map<MetadataType, std::string> metadata_;
 };
 
 class KeywordToken : public Token {
@@ -37,13 +38,13 @@ class KeywordToken : public Token {
 
   TokenId GetTokenId() const noexcept override;
 
-  std::string GetValue() const noexcept override;
+  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
 
   std::unique_ptr<Token> Clone() const override;
 
  private:
   TokenId token_id_;
-  std::string name_;
+  std::map<MetadataType, std::string> metadata_;
 };
 
 class IntegralNumberToken : public Token {
@@ -52,12 +53,12 @@ class IntegralNumberToken : public Token {
 
   TokenId GetTokenId() const noexcept override;
 
-  std::string GetValue() const noexcept override;
+  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
 
   std::unique_ptr<Token> Clone() const override;
 
  private:
-  std::string value_;
+  std::map<MetadataType, std::string> metadata_;
 };
 
 }  // namespace kaleidoc

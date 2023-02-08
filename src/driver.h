@@ -2,6 +2,7 @@
 #define KALEIDOC_SRC_DRIVER_H_
 
 #include <istream>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -20,6 +21,8 @@ enum TokenId {
 
 enum TokenPriorityId { kUnmatched = 0, kNormal = 1, kHigh = 2 };
 
+enum MetadataType { kValue = 0 };
+
 template<class T> class IClonable {
  public:
   virtual std::unique_ptr<T> Clone() const = 0;
@@ -29,11 +32,9 @@ class Token : public IClonable<Token> {
  public:
   virtual TokenId GetTokenId() const noexcept = 0;
 
-  virtual std::string GetValue() const noexcept = 0;
+  virtual std::map<MetadataType, std::string> GetMetadata() const noexcept = 0;
 
   virtual ~Token() = default;
-
-  int a;
 };
 
 class LexemeAnalyzer : public IClonable<LexemeAnalyzer> {

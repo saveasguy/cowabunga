@@ -32,8 +32,12 @@ int main(int argc, char **argv) {
   std::unique_ptr<kaleidoc::Token> token = nullptr;
   do {
     token = lexer.NextToken(*input);
-    std::cout << token->GetValue() << "(" << token->GetTokenId() << ")"
-              << std::endl;
+    std::cout << token->GetTokenId();
+    auto metadata = token->GetMetadata();
+    if (metadata.find(kaleidoc::MetadataType::kValue) != metadata.end()) {
+      std::cout << " (" <<metadata[kaleidoc::MetadataType::kValue] << ")";
+    }
+    std::cout << std::endl;
   } while (token->GetTokenId() != kaleidoc::TokenId::kEof);
   return 0;
 }

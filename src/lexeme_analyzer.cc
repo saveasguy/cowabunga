@@ -1,9 +1,9 @@
 #include "lexeme_analyzer.h"
 
 #include <cctype>
-#include <iostream>
 #include <istream>
 #include <memory>
+#include <ostream>
 
 #include "driver.h"
 #include "token.h"
@@ -62,7 +62,7 @@ std::unique_ptr<LexemeAnalyzer> KeywordAnalyzer::Clone() const {
 // Integral number analyzer
 
 TokenPriorityId IntegralNumberAnalyzer::CheckNextChar(char c) {
-  if (std::isdigit(c) != 0) { return TokenPriorityId::kUnmatched; }
+  if (std::isdigit(c) == 0) { return TokenPriorityId::kUnmatched; }
   return TokenPriorityId::kNormal;
 }
 
