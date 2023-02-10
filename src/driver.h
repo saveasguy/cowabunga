@@ -15,15 +15,26 @@ enum TokenId {
   kEof,
   kIdentifier,
   kIntegralNumber,
-  kDef,
-  kExtern,
-  kSemicolon,
-  kOperator
+  kExpressionSeparator,
+  kArgumentSeparator,
+  kAssignment,
+  kPlus,
+  kMinus,
+  kDefinition,
+  kExternalDeclaration,
+  kBodyBegin,
+  kBodyEnd
 };
 
 enum TokenPriority { kUnmatched = 0, kNormal = 1, kHigh = 2 };
 
 enum MetadataType {};  // Not implemented yet
+
+enum OperatorId {
+  kAssignmentOp = TokenId::kAssignment,
+  kPlusOp = TokenId::kPlus,
+  kMinusOp = TokenId::kMinus
+};
 
 class Token;
 
@@ -46,6 +57,19 @@ class Lexer : public IClonable<Lexer> {
   virtual std::vector<Token> ProduceTokens(std::istream &input) const = 0;
 
   virtual ~Lexer() = default;
+};
+
+class AstNode : public IClonable<AstNode> {
+ public:
+  virtual ~AstNode() = default;
+};
+
+class Parser : public IClonable<Parser> {
+ public:
+  virtual std::unique_ptr<AstNode> Parse(std::vector<Token>::const_iterator begin,
+                                 std::vector<Token>::const_iterator end) const = 0;
+
+  virtual ~Parser() = default;
 };
 
 class Driver {};

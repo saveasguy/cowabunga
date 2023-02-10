@@ -13,17 +13,23 @@ int main(int argc, char **argv) {
       .AddTokenizer(std::make_unique<kaleidoc::IdentifierTokenizer>())
       .AddTokenizer(std::make_unique<kaleidoc::IntegralNumberTokenizer>())
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
-          kaleidoc::TokenId::kSemicolon, ";"))
+          kaleidoc::TokenId::kArgumentSeparator, ","))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
-          kaleidoc::TokenId::kOperator, "="))
+          kaleidoc::TokenId::kExpressionSeparator, ";"))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
-          kaleidoc::TokenId::kOperator, "+"))
+          kaleidoc::TokenId::kAssignment, "="))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
-          kaleidoc::TokenId::kOperator, "-"))
+          kaleidoc::TokenId::kPlus, "+"))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
-          kaleidoc::TokenId::kDef, "def"))
+          kaleidoc::TokenId::kMinus, "-"))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
-          kaleidoc::TokenId::kExtern, "extern"));
+          kaleidoc::TokenId::kDefinition, "def"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kExternalDeclaration, "extern"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kBodyBegin, "begin"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kBodyEnd, "end"));
 
   std::ifstream script;
   if (argc == 2) {
