@@ -1,78 +1,53 @@
 #include "token.h"
 
 #include <map>
-#include <memory>
 #include <string>
 
 #include "driver.h"
 
 namespace kaleidoc {
 
-// Identifier token
+Token::Token(TokenId token_id, std::string matched_string,
+             TokenPriority token_priority)
+    : id_{token_id},
+      stringified_{std::move(matched_string)},
+      priority_{token_priority} {}
 
-IdentifierToken::IdentifierToken(const std::string &name) {
-  metadata_[MetadataType::kValue] = name;
+void Token::AddMetadata(MetadataType type, std::string value) {
+  metadata_[type] = std::move(value);
 }
 
-TokenId IdentifierToken::GetTokenId() const noexcept {
-  return TokenId::kIdentifier;
+bool Token::Equals(const Token &rhs) const {
+  return stringified_ == rhs.stringified_ && priority_ == rhs.priority_;
 }
 
-std::map<MetadataType, std::string> IdentifierToken::GetMetadata()
-    const noexcept {
+bool Token::Less(const Token &rhs) const {
+  if (stringified_ == rhs.stringified_) { return priority_ < rhs.priority_; }
+  return stringified_ < rhs.stringified_;
+}
+
+Token::operator bool() const { return priority_ != TokenPriority::kUnmatched; }
+
+TokenId Token::id() const { return id_; }
+
+TokenPriority Token::priority() const { return priority_; }
+
+std::string Token::stringified() const { return stringified_; }
+
+const std::map<MetadataType, std::string> &Token::metadata() const {
   return metadata_;
 }
 
-std::unique_ptr<Token> IdentifierToken::Clone() const {
-  return std::make_unique<IdentifierToken>(*this);
-}
+bool operator==(const Token &lhs, const Token &rhs) { return lhs.Equals(rhs); }
 
-// Keyword token
+bool operator!=(const Token &lhs, const Token &rhs) { return !lhs.Equals(rhs); }
 
-KeywordToken::KeywordToken(TokenId token_id, const std::string &name)
-    : token_id_{ token_id } {
-  metadata_[MetadataType::kValue] = name;
-}
+bool operator>(const Token &lhs, const Token &rhs) { return rhs.Less(lhs); }
 
-TokenId KeywordToken::GetTokenId() const noexcept { return token_id_; }
+bool operator>=(const Token &lhs, const Token &rhs) { return !lhs.Less(rhs); }
 
-std::map<MetadataType, std::string> KeywordToken::GetMetadata() const noexcept {
-  return metadata_;
-}
+bool operator<(const Token &lhs, const Token &rhs) { return lhs.Less(rhs); }
 
-std::unique_ptr<Token> KeywordToken::Clone() const {
-  return std::make_unique<KeywordToken>(*this);
-}
-
-// Integral number token
-
-IntegralNumberToken::IntegralNumberToken(const std::string &value) {
-  metadata_[MetadataType::kValue] = value;
-}
-
-TokenId IntegralNumberToken::GetTokenId() const noexcept {
-  return TokenId::kIntegralNumber;
-}
-
-std::map<MetadataType, std::string> IntegralNumberToken::GetMetadata()
-    const noexcept {
-  return metadata_;
-}
-
-std::unique_ptr<Token> IntegralNumberToken::Clone() const {
-  return std::make_unique<IntegralNumberToken>(*this);
-}
-
-// EOF token
-
-TokenId EofToken::GetTokenId() const noexcept { return TokenId::kEof; }
-
-std::map<MetadataType, std::string> EofToken::GetMetadata() const noexcept {
-  return std::map<MetadataType, std::string>{};
-}
-
-std::unique_ptr<Token> EofToken::Clone() const {
-  return std::make_unique<EofToken>(*this);
-}
+bool operator<=(const Token &lhs, const Token &rhs) { return !rhs.Less(lhs); }
 
 }  // namespace kaleidoc

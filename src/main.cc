@@ -1,43 +1,40 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string_view>
 
 #include "driver.h"
-#include "lexeme_analyzer.h"
 #include "lexer.h"
+#include "tokenizer.h"
 
 int main(int argc, char **argv) {
-  kaleidoc::SymbolicLexer lexer{};
-  lexer.AddAnalyzer(std::make_unique<kaleidoc::IdentifierAnalyzer>())
-      .AddAnalyzer(std::make_unique<kaleidoc::IntegralNumberAnalyzer>())
-      .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kAssignment, "="))
-      .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kPlus, "+"))
-      .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
-          kaleidoc::TokenId::kMinus, "-"))
-      .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
+  kaleidoc::FullTextLexer lexer{};
+  lexer.AddTokenizer(std::make_unique<kaleidoc::EofTokenizer>())
+      .AddTokenizer(std::make_unique<kaleidoc::IdentifierTokenizer>())
+      .AddTokenizer(std::make_unique<kaleidoc::IntegralNumberTokenizer>())
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kSemicolon, ";"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kOperator, "="))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kOperator, "+"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kOperator, "-"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
           kaleidoc::TokenId::kDef, "def"))
-      .AddAnalyzer(std::make_unique<kaleidoc::KeywordAnalyzer>(
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
           kaleidoc::TokenId::kExtern, "extern"));
 
-  std::istream *input = &std::cin;
   std::ifstream script;
   if (argc == 2) {
     script.open(argv[1]);
-    input = &script;
   } else {
-    std::cout << "Press Ctrl+C to leave REPL" << std::endl;
+    std::cerr << "No input files" << std::endl;
+    exit(1);
   }
-  std::unique_ptr<kaleidoc::Token> token = nullptr;
-  do {
-    token = lexer.NextToken(*input);
-    std::cout << token->GetTokenId();
-    auto metadata = token->GetMetadata();
-    if (metadata.find(kaleidoc::MetadataType::kValue) != metadata.end()) {
-      std::cout << " (" <<metadata[kaleidoc::MetadataType::kValue] << ")";
-    }
-    std::cout << std::endl;
-  } while (token->GetTokenId() != kaleidoc::TokenId::kEof);
+  auto tokens = lexer.ProduceTokens(script);
+  for (const auto &token : tokens) {
+    std::cout << token.id() << "(" << token.stringified() << ")" << std::endl;
+  }
   return 0;
 }

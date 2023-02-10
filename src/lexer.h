@@ -5,15 +5,17 @@
 #include <istream>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "driver.h"
+#include "token.h"
 
 namespace kaleidoc {
 
 class UnknownLexemeException : public std::exception {
  public:
-  UnknownLexemeException(const std::string &msg);
+  UnknownLexemeException(std::string msg);
 
   const char *what() const noexcept override;
 
@@ -23,34 +25,30 @@ class UnknownLexemeException : public std::exception {
   std::string msg_;
 };
 
-class SymbolicLexer : public Lexer {
+class FullTextLexer : public Lexer {
  public:
-  SymbolicLexer() = default;
+  FullTextLexer() = default;
 
-  SymbolicLexer(const SymbolicLexer &rhs);
+  FullTextLexer(const FullTextLexer &rhs);
 
-  SymbolicLexer(SymbolicLexer &&rhs) noexcept = default;
+  FullTextLexer(FullTextLexer &&rhs) noexcept = default;
 
-  SymbolicLexer &operator=(const SymbolicLexer &rhs);
+  FullTextLexer &operator=(const FullTextLexer &rhs);
 
-  SymbolicLexer &operator=(SymbolicLexer &&rhs) noexcept = default;
+  FullTextLexer &operator=(FullTextLexer &&rhs) noexcept = default;
 
-  Lexer &AddAnalyzer(std::unique_ptr<LexemeAnalyzer> analyzer) override;
+  Lexer &AddTokenizer(std::unique_ptr<Tokenizer> tokenizer) override;
 
-  std::unique_ptr<Token> NextToken(std::istream &input) override;
+  std::vector<Token> ProduceTokens(std::istream &input) const override;
 
   std::unique_ptr<Lexer> Clone() const override;
 
-  ~SymbolicLexer() override = default;
+  ~FullTextLexer() override = default;
 
  private:
-  std::unique_ptr<Token> GetBestMatchedToken(std::istream &input);
+  Token FindBestToken(std::string_view word) const;
 
-  static std::string TryGetWordTail(std::istream &input, LexemeAnalyzer *analyzer);
-
-  static void SkipBlankSpace(std::istream &input);
-
-  std::vector<std::unique_ptr<LexemeAnalyzer>> analyzers_;
+  std::vector<std::unique_ptr<Tokenizer>> tokenizers_;
 };
 
 }  // namespace kaleidoc

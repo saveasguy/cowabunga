@@ -5,56 +5,45 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace kaleidoc {
 
 enum TokenId {
-  kEof = 0,
-  kDef = 1,
-  kExtern = 2,
-  kIdentifier = 3,
-  kIntegralNumber = 4,
-  kAssignment = 5,
-  kPlus = 6,
-  kMinus = 7
+  kEof,
+  kIdentifier,
+  kIntegralNumber,
+  kDef,
+  kExtern,
+  kSemicolon,
+  kOperator
 };
 
-enum TokenPriorityId { kUnmatched = 0, kNormal = 1, kHigh = 2 };
+enum TokenPriority { kUnmatched = 0, kNormal = 1, kHigh = 2 };
 
-enum MetadataType { kValue = 0 };
+enum MetadataType {};  // Not implemented yet
+
+class Token;
 
 template<class T> class IClonable {
  public:
   virtual std::unique_ptr<T> Clone() const = 0;
 };
 
-class Token : public IClonable<Token> {
+class Tokenizer : public IClonable<Tokenizer> {
  public:
-  virtual TokenId GetTokenId() const noexcept = 0;
+  virtual Token Tokenize(std::string_view word) const = 0;
 
-  virtual std::map<MetadataType, std::string> GetMetadata() const noexcept = 0;
-
-  virtual ~Token() = default;
-};
-
-class LexemeAnalyzer : public IClonable<LexemeAnalyzer> {
- public:
-  TokenPriorityId CheckWholeWord(const std::string &word);
-
-  virtual TokenPriorityId CheckNextChar(char c) = 0;
-
-  virtual std::unique_ptr<Token> GetTokenId(const std::string &word) const = 0;
-
-  virtual void Flush() = 0;
-
-  virtual ~LexemeAnalyzer() = default;
+  virtual ~Tokenizer() = default;
 };
 
 class Lexer : public IClonable<Lexer> {
  public:
-  virtual Lexer &AddAnalyzer(std::unique_ptr<LexemeAnalyzer> analyzer) = 0;
+  virtual Lexer &AddTokenizer(std::unique_ptr<Tokenizer> analyzer) = 0;
 
-  virtual std::unique_ptr<Token> NextToken(std::istream &input) = 0;
+  virtual std::vector<Token> ProduceTokens(std::istream &input) const = 0;
 
   virtual ~Lexer() = default;
 };

@@ -2,64 +2,53 @@
 #define KALEIDOC_SRC_TOKEN_H_
 
 #include <map>
-#include <memory>
 #include <string>
 
 #include "driver.h"
 
 namespace kaleidoc {
 
-class EofToken : public Token {
+class Token final {
  public:
-  TokenId GetTokenId() const noexcept override;
+  Token() = default;
 
-  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
+  Token(TokenId token_id, std::string matched_string,
+        TokenPriority token_priority = TokenPriority::kNormal);
 
-  std::unique_ptr<Token> Clone() const override;
-};
+  void AddMetadata(MetadataType type, std::string value);
 
-class IdentifierToken : public Token {
- public:
-  IdentifierToken(const std::string &name);
+  bool Equals(const Token &rhs) const;
 
-  TokenId GetTokenId() const noexcept override;
+  bool Less(const Token &rhs) const;
 
-  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
+  operator bool() const;
 
-  std::unique_ptr<Token> Clone() const override;
+  TokenId id() const;
+
+  TokenPriority priority() const;
+
+  std::string stringified() const;
+
+  const std::map<MetadataType, std::string> &metadata() const;
 
  private:
   std::map<MetadataType, std::string> metadata_;
+  std::string stringified_;
+  TokenId id_;
+  TokenPriority priority_;
 };
 
-class KeywordToken : public Token {
- public:
-  KeywordToken(TokenId token_id, const std::string &name);
+bool operator==(const Token &lhs, const Token &rhs);
 
-  TokenId GetTokenId() const noexcept override;
+bool operator!=(const Token &lhs, const Token &rhs);
 
-  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
+bool operator>(const Token &lhs, const Token &rhs);
 
-  std::unique_ptr<Token> Clone() const override;
+bool operator>=(const Token &lhs, const Token &rhs);
 
- private:
-  TokenId token_id_;
-  std::map<MetadataType, std::string> metadata_;
-};
+bool operator<(const Token &lhs, const Token &rhs);
 
-class IntegralNumberToken : public Token {
- public:
-  IntegralNumberToken(const std::string &value);
-
-  TokenId GetTokenId() const noexcept override;
-
-  std::map<MetadataType, std::string> GetMetadata() const noexcept override;
-
-  std::unique_ptr<Token> Clone() const override;
-
- private:
-  std::map<MetadataType, std::string> metadata_;
-};
+bool operator<=(const Token &lhs, const Token &rhs);
 
 }  // namespace kaleidoc
 
