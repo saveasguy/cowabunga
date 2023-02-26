@@ -2,14 +2,12 @@
 #define KALEIDOC_SRC_LEXER_H_
 
 #include <exception>
-#include <istream>
+#include <map>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "driver.h"
-#include "token.h"
 
 namespace kaleidoc {
 
@@ -41,8 +39,6 @@ class FullTextLexer : public Lexer {
 
   std::vector<Token> ProduceTokens(std::istream &input) const override;
 
-  std::unique_ptr<Lexer> Clone() const override;
-
   ~FullTextLexer() override = default;
 
  private:
@@ -50,6 +46,82 @@ class FullTextLexer : public Lexer {
 
   std::vector<std::unique_ptr<Tokenizer>> tokenizers_;
 };
+
+class EofTokenizer : public Tokenizer {
+ public:
+  Token Tokenize(std::string_view word) const override;
+
+  std::unique_ptr<Tokenizer> Clone() const override;
+};
+
+class IdentifierTokenizer : public Tokenizer {
+ public:
+  Token Tokenize(std::string_view word) const override;
+
+  std::unique_ptr<Tokenizer> Clone() const override;
+};
+
+class KeywordTokenizer : public Tokenizer {
+ public:
+  KeywordTokenizer(TokenId token_id, std::string keyword);
+
+  Token Tokenize(std::string_view word) const override;
+
+  std::unique_ptr<Tokenizer> Clone() const override;
+
+ private:
+  TokenId token_id_;
+  std::string stringified_keyword_;
+};
+
+class IntegralNumberTokenizer : public Tokenizer {
+ public:
+  Token Tokenize(std::string_view word) const override;
+
+  std::unique_ptr<Tokenizer> Clone() const override;
+};
+
+class Token final {
+ public:
+  Token();
+
+  Token(TokenId token_id, std::string matched_string,
+        TokenPriority token_priority = TokenPriority::kNormal);
+
+  void AddMetadata(MetadataType type, std::string value);
+
+  bool Equals(const Token &rhs) const;
+
+  bool Less(const Token &rhs) const;
+
+  operator bool() const;
+
+  TokenId id() const;
+
+  TokenPriority priority() const;
+
+  std::string stringified() const;
+
+  const std::map<MetadataType, std::string> &metadata() const;
+
+ private:
+  std::map<MetadataType, std::string> metadata_;
+  std::string stringified_;
+  TokenId id_;
+  TokenPriority priority_;
+};
+
+bool operator==(const Token &lhs, const Token &rhs);
+
+bool operator!=(const Token &lhs, const Token &rhs);
+
+bool operator>(const Token &lhs, const Token &rhs);
+
+bool operator>=(const Token &lhs, const Token &rhs);
+
+bool operator<(const Token &lhs, const Token &rhs);
+
+bool operator<=(const Token &lhs, const Token &rhs);
 
 }  // namespace kaleidoc
 

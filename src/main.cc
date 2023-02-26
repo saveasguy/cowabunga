@@ -5,7 +5,7 @@
 
 #include "driver.h"
 #include "lexer.h"
-#include "tokenizer.h"
+#include "parser.h"
 
 int main(int argc, char **argv) {
   kaleidoc::FullTextLexer lexer{};
@@ -22,6 +22,10 @@ int main(int argc, char **argv) {
           kaleidoc::TokenId::kPlus, "+"))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
           kaleidoc::TokenId::kMinus, "-"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kShiftLeft, "<<"))
+      .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
+          kaleidoc::TokenId::kShiftRight, ">>"))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
           kaleidoc::TokenId::kDefinition, "def"))
       .AddTokenizer(std::make_unique<kaleidoc::KeywordTokenizer>(
@@ -42,5 +46,15 @@ int main(int argc, char **argv) {
   for (const auto &token : tokens) {
     std::cout << token.id() << "(" << token.stringified() << ")" << std::endl;
   }
+  auto variable_builder = std::make_unique<kaleidoc::VariableAstBuilder>();
+  auto int_builder = std::make_unique<kaleidoc::IntegralNumberAstBuilder>();
+  auto primary_builder =
+      std::make_unique<kaleidoc::PrimaryExpressionAstBuilder>();
+  primary_builder->AddBuilder(variable_builder.get());
+  primary_builder->AddBuilder(int_builder.get());
+  kaleidoc::BinaryExpressionAstBuilder builder;
+  builder.AddPrimaryBuilder(primary_builder.get());
+  auto ast = builder.Build(tokens.cbegin(), tokens.cend()).first;
+  std::cout << *ast << std::endl;
   return 0;
 }

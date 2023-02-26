@@ -1,12 +1,8 @@
 #ifndef KALEIDOC_SRC_DRIVER_H_
 #define KALEIDOC_SRC_DRIVER_H_
 
-#include <istream>
-#include <map>
 #include <memory>
-#include <string>
-#include <string_view>
-#include <utility>
+#include <ostream>
 #include <vector>
 
 namespace kaleidoc {
@@ -17,9 +13,13 @@ enum TokenId {
   kIntegralNumber,
   kExpressionSeparator,
   kArgumentSeparator,
+  kBinaryOperatorsRangeBegin,
   kAssignment,
   kPlus,
   kMinus,
+  kShiftLeft,
+  kShiftRight,
+  kBinaryOperatorsRangeEnd,
   kDefinition,
   kExternalDeclaration,
   kBodyBegin,
@@ -33,7 +33,9 @@ enum MetadataType {};  // Not implemented yet
 enum OperatorId {
   kAssignmentOp = TokenId::kAssignment,
   kPlusOp = TokenId::kPlus,
-  kMinusOp = TokenId::kMinus
+  kMinusOp = TokenId::kMinus,
+  kShiftLeftOp = TokenId::kShiftLeft,
+  kShiftRightOp = TokenId::kShiftRight
 };
 
 class Token;
@@ -43,6 +45,11 @@ template<class T> class IClonable {
   virtual std::unique_ptr<T> Clone() const = 0;
 };
 
+class IPrintable {
+ public:
+  virtual void Print(std::ostream &out) const = 0;
+};
+
 class Tokenizer : public IClonable<Tokenizer> {
  public:
   virtual Token Tokenize(std::string_view word) const = 0;
@@ -50,7 +57,7 @@ class Tokenizer : public IClonable<Tokenizer> {
   virtual ~Tokenizer() = default;
 };
 
-class Lexer : public IClonable<Lexer> {
+class Lexer {
  public:
   virtual Lexer &AddTokenizer(std::unique_ptr<Tokenizer> analyzer) = 0;
 
@@ -59,17 +66,32 @@ class Lexer : public IClonable<Lexer> {
   virtual ~Lexer() = default;
 };
 
-class AstNode : public IClonable<AstNode> {
+class AstNode : public IClonable<AstNode>, public IPrintable {
  public:
+  void Print(std::ostream &out) const override;
+
   virtual ~AstNode() = default;
 };
 
-class Parser : public IClonable<Parser> {
- public:
-  virtual std::unique_ptr<AstNode> Parse(std::vector<Token>::const_iterator begin,
-                                 std::vector<Token>::const_iterator end) const = 0;
+std::ostream &operator<<(std::ostream &out, const AstNode &node);
 
-  virtual ~Parser() = default;
+class AstBuilder : public IClonable<AstBuilder> {
+ public:
+  virtual std::pair<std::unique_ptr<AstNode>,
+                    std::vector<Token>::const_iterator>
+  Build(std::vector<Token>::const_iterator begin,
+        std::vector<Token>::const_iterator end) const = 0;
+
+  virtual ~AstBuilder() = default;
+};
+
+class Parser {
+ public:
+  virtual AstBuilder *RegisterAstBuilder(AstBuilder *builder) = 0;
+
+  virtual std::unique_ptr<AstNode> Parse(
+      std::vector<Token>::const_iterator begin,
+      std::vector<Token>::const_iterator end) const = 0;
 };
 
 class Driver {};
