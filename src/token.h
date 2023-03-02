@@ -10,7 +10,7 @@ namespace kaleidoc {
 
 class Token final {
  public:
-  Token() = default;
+  Token();
 
   Token(TokenId token_id, std::string matched_string,
         TokenPriority token_priority = TokenPriority::kNormal);

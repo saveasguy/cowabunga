@@ -4,6 +4,7 @@
 #include <exception>
 #include <istream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -48,14 +49,14 @@ std::vector<Token> FullTextLexer::ProduceTokens(std::istream &input) const {
       word_view.remove_prefix(offset);
     }
     if (word_view.empty()) {
-      word.clear();
       input >> word;
       word_view = std::string_view{word.c_str()};
     } 
     Token token = FindBestToken(word_view);
     if (!token) {
-      throw UnknownLexemeException{
-          std::string{word_view.cbegin(), word_view.cend()}};
+      std::stringstream str;
+      str << "Unknown lexeme: " << std::string{word_view.cbegin(), word_view.cend()};
+      throw UnknownLexemeException{str.str()};
     }
     tokens.push_back(std::move(token));
   } while (input);
@@ -66,7 +67,9 @@ Token FullTextLexer::FindBestToken(std::string_view word) const {
   Token best_token;
   for (const auto &tokenizer : tokenizers_) {
     Token cur_token = tokenizer->Tokenize(word);
-    if (cur_token > best_token) { best_token = cur_token; }
+    if (cur_token > best_token) {
+      best_token = cur_token;
+    }
   }
   return best_token;
 }
