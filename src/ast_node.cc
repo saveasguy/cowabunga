@@ -98,4 +98,9 @@ FunctionAstNode &FunctionAstNode::operator=(const FunctionAstNode &rhs) {
   return *this;
 }
 
+std::unique_ptr<AstNode> FunctionAstNode::Clone() const
+{
+  return std::make_unique<FunctionAstNode>(*this);
+}
+
 }  // namespace kaleidoc

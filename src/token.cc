@@ -7,6 +7,8 @@
 
 namespace kaleidoc {
 
+Token::Token() : priority_{TokenPriority::kUnmatched} {}
+
 Token::Token(TokenId token_id, std::string matched_string,
              TokenPriority token_priority)
     : id_{token_id},
