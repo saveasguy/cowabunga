@@ -1,7 +1,6 @@
 #ifndef KALEIDOC_SRC_PARSER_H_
 #define KALEIDOC_SRC_PARSER_H_
 
-
 #include <exception>
 #include <map>
 #include <memory>
@@ -69,7 +68,7 @@ class BinaryExpressionAstBuilder : public AstBuilder {
       std::vector<Token>::const_iterator begin,
       std::vector<Token>::const_iterator end) const override;
 
-  void AddPrimaryBuilder(AstBuilder *builder);
+  void SetPrimaryBuilder(AstBuilder *builder);
 
   std::unique_ptr<AstBuilder> Clone() const override;
 
@@ -80,12 +79,17 @@ class BinaryExpressionAstBuilder : public AstBuilder {
                 std::unique_ptr<AstNode> lhs) const;
 
   std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
+  BuildBinopRhsChain(std::vector<Token>::const_iterator begin,
+                     std::vector<Token>::const_iterator end,
+                     std::unique_ptr<AstNode> lhs) const;
+
+  std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
   BuildRhsPrimary(std::vector<Token>::const_iterator begin,
                   std::vector<Token>::const_iterator end) const;
 
   static bool TokenIsBinaryOperator(const Token &token) noexcept;
 
-  static constexpr int kMaxPrecedence = 10;
+  static constexpr int kMaxPrecedence = 8;
   std::map<OperatorId, int> operator_precedence_;
   AstBuilder *primary_builder_;
 };
@@ -109,8 +113,8 @@ class ExpressionSequenceAstNode : public AstNode {
   std::unique_ptr<AstNode> Clone() const override;
 
  private:
-  std::unique_ptr<AstNode> rhs_;
   std::unique_ptr<AstNode> lhs_;
+  std::unique_ptr<AstNode> rhs_;
 };
 
 class IntegralNumberAstNode : public AstNode {
@@ -140,7 +144,8 @@ class VariableAstNode : public AstNode {
 class BinaryExpressionAstNode : public AstNode {
  public:
   BinaryExpressionAstNode(OperatorId op, std::unique_ptr<AstNode> lhs,
-                          std::unique_ptr<AstNode> rhs);
+                          std::unique_ptr<AstNode> rhs,
+                          std::string operator_str = "Unknown");
 
   BinaryExpressionAstNode(const BinaryExpressionAstNode &rhs);
 
@@ -159,6 +164,7 @@ class BinaryExpressionAstNode : public AstNode {
 
  private:
   OperatorId op_;
+  std::string stringifed_operator_;
   std::unique_ptr<AstNode> lhs_;
   std::unique_ptr<AstNode> rhs_;
 };
