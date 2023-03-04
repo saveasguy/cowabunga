@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   }
   auto tokens = lexer.ProduceTokens(script);
   for (const auto &token : tokens) {
-    std::cout << token.id() << "(" << token.stringified() << ")" << std::endl;
+    std::cout << token << std::endl;
   }
   auto variable_builder = std::make_unique<kaleidoc::VariableAstBuilder>();
   auto int_builder = std::make_unique<kaleidoc::IntegralNumberAstBuilder>();

@@ -1,5 +1,6 @@
 #include "lexer.h"
 
+#include <algorithm>
 #include <cctype>
 #include <exception>
 #include <istream>
@@ -50,7 +51,8 @@ std::vector<Token> FullTextLexer::ProduceTokens(std::istream &input) const {
   std::string_view word_view;
   do {
     if (!word_view.empty()) {
-      auto offset = tokens.back().stringified().length();
+      auto offset =
+          tokens.back().metadata().at(MetadataType::kStringified).length();
       word_view.remove_prefix(offset);
     }
     if (word_view.empty()) {
@@ -96,12 +98,10 @@ std::unique_ptr<Tokenizer> EofTokenizer::Clone() const {
 
 Token IdentifierTokenizer::Tokenize(std::string_view word) const {
   const auto *it = word.cbegin();
-  bool match = it != word.cend() && (std::isalpha(*it) != 0 || *it == '_');
+  bool match = it != word.cend() && (std::isalpha(*it) || *it == '_');
   while (match && it != word.cend()) {
-    match = std::isalnum(*it) != 0 || *it == '_';
-    if (match) {
-      ++it;
-    }
+    match = std::isalnum(*it) || *it == '_';
+    if (match) { ++it; }
   }
   if (it == word.cbegin()) { return Token{}; }
   std::string matched_string{word.cbegin(), it};
@@ -118,7 +118,7 @@ KeywordTokenizer::KeywordTokenizer(TokenId token_id, std::string keyword)
     : token_id_{token_id}, stringified_keyword_{std::move(keyword)} {}
 
 Token KeywordTokenizer::Tokenize(std::string_view word) const {
-  if (word.find(stringified_keyword_) != 0) { return Token{}; }
+  if (word.find(stringified_keyword_)) { return Token{}; }
   return Token{token_id_, stringified_keyword_, TokenPriority::kHigh};
 }
 
@@ -132,10 +132,8 @@ Token IntegralNumberTokenizer::Tokenize(std::string_view word) const {
   bool match = true;
   const auto *it = word.cbegin();
   while (match && it != word.cend()) {
-    match = std::isdigit(*it) != 0;
-    if (match) {
-      ++it;
-    }
+    match = std::isdigit(*it);
+    if (match) { ++it; }
   }
   if (it == word.cbegin()) { return Token{}; }
   std::string matched_string{word.cbegin(), it};
@@ -153,21 +151,51 @@ Token::Token() : priority_{TokenPriority::kUnmatched} {}
 
 Token::Token(TokenId token_id, std::string matched_string,
              TokenPriority token_priority)
-    : id_{token_id},
-      stringified_{std::move(matched_string)},
-      priority_{token_priority} {}
+    : id_{token_id}, priority_{token_priority} {
+  metadata_[MetadataType::kStringified] = std::move(matched_string);
+}
 
 void Token::AddMetadata(MetadataType type, std::string value) {
   metadata_[type] = std::move(value);
 }
 
 bool Token::Equals(const Token &rhs) const {
-  return stringified_ == rhs.stringified_ && priority_ == rhs.priority_;
+  auto stringified_it = metadata_.find(MetadataType::kStringified);
+  auto rhs_stringified_it = rhs.metadata_.find(MetadataType::kStringified);
+  bool stringified_equal = false;
+  if (stringified_it != metadata_.end() &&
+      rhs_stringified_it != rhs.metadata_.end()) {
+    stringified_equal = (*stringified_it == *rhs_stringified_it);
+  }
+  return stringified_equal && priority_ == rhs.priority_;
 }
 
 bool Token::Less(const Token &rhs) const {
-  if (stringified_ == rhs.stringified_) { return priority_ < rhs.priority_; }
-  return stringified_ < rhs.stringified_;
+  auto stringified_it = metadata_.find(MetadataType::kStringified);
+  auto rhs_stringified_it = rhs.metadata_.find(MetadataType::kStringified);
+  bool stringified_equal = false;
+  if (stringified_it == metadata_.end() ||
+      rhs_stringified_it == rhs.metadata_.end() ||
+      *stringified_it == *rhs_stringified_it) {
+    return priority_ < rhs.priority_;
+  }
+  return *stringified_it < *rhs_stringified_it;
+}
+
+void Token::Print(std::ostream &out) const {
+  out << "Token {";
+  auto stringified_it = metadata_.find(MetadataType::kStringified);
+  if (stringified_it == metadata_.end()) {
+    out << "Unknown";
+  } else {
+    out << stringified_it->second;
+  }
+  out << ", " << id_ << "}";
+}
+
+std::ostream &operator<<(std::ostream &out, const Token &token) {
+  token.Print(out);
+  return out;
 }
 
 Token::operator bool() const { return priority_ != TokenPriority::kUnmatched; }
@@ -175,8 +203,6 @@ Token::operator bool() const { return priority_ != TokenPriority::kUnmatched; }
 TokenId Token::id() const { return id_; }
 
 TokenPriority Token::priority() const { return priority_; }
-
-std::string Token::stringified() const { return stringified_; }
 
 const std::map<MetadataType, std::string> &Token::metadata() const {
   return metadata_;

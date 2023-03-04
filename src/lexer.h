@@ -4,6 +4,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -81,18 +82,20 @@ class IntegralNumberTokenizer : public Tokenizer {
   std::unique_ptr<Tokenizer> Clone() const override;
 };
 
-class Token final {
+class Token final : public IPrintable, public IMetadataHandler {
  public:
   Token();
 
   Token(TokenId token_id, std::string matched_string,
         TokenPriority token_priority = TokenPriority::kNormal);
 
-  void AddMetadata(MetadataType type, std::string value);
+  void AddMetadata(MetadataType type, std::string value) override;
 
   bool Equals(const Token &rhs) const;
 
   bool Less(const Token &rhs) const;
+
+  void Print(std::ostream &out) const override;
 
   operator bool() const;
 
@@ -100,16 +103,15 @@ class Token final {
 
   TokenPriority priority() const;
 
-  std::string stringified() const;
-
-  const std::map<MetadataType, std::string> &metadata() const;
+  const std::map<MetadataType, std::string> &metadata() const override;
 
  private:
   std::map<MetadataType, std::string> metadata_;
-  std::string stringified_;
   TokenId id_;
   TokenPriority priority_;
 };
+
+std::ostream &operator<<(std::ostream &out, const Token &token);
 
 bool operator==(const Token &lhs, const Token &rhs);
 

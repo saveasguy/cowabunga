@@ -26,6 +26,18 @@ class UnknownAstBuilderRuleException : public std::exception {
   std::string msg_;
 };
 
+class UnexpectedTokenException : public std::exception {
+ public:
+  UnexpectedTokenException(std::string msg);
+
+  const char *what() const noexcept override;
+
+  ~UnexpectedTokenException() override = default;
+
+ private:
+  std::string msg_;
+};
+
 // --- AST BUILDERS ---
 
 class IntegralNumberAstBuilder : public AstBuilder {
@@ -96,42 +108,18 @@ class BinaryExpressionAstBuilder : public AstBuilder {
 
 // --- AST NODES ---
 
-class ExpressionSequenceAstNode : public AstNode {
- public:
-  ExpressionSequenceAstNode(std::unique_ptr<AstNode> lhs,
-                            std::unique_ptr<AstNode> rhs);
-
-  ExpressionSequenceAstNode(const ExpressionSequenceAstNode &rhs);
-
-  ExpressionSequenceAstNode(ExpressionSequenceAstNode &&rhs) noexcept = default;
-
-  ExpressionSequenceAstNode &operator=(const ExpressionSequenceAstNode &rhs);
-
-  ExpressionSequenceAstNode &operator=(
-      ExpressionSequenceAstNode &&rhs) noexcept = default;
-
-  std::unique_ptr<AstNode> Clone() const override;
-
- private:
-  std::unique_ptr<AstNode> lhs_;
-  std::unique_ptr<AstNode> rhs_;
-};
-
 class IntegralNumberAstNode : public AstNode {
  public:
-  IntegralNumberAstNode(long long value);
+  IntegralNumberAstNode(const Token &token);
 
   void Print(std::ostream &out) const override;
 
   std::unique_ptr<AstNode> Clone() const override;
-
- private:
-  long long value_;
 };
 
 class VariableAstNode : public AstNode {
  public:
-  VariableAstNode(std::string name);
+  VariableAstNode(const Token &token);
 
   void Print(std::ostream &out) const override;
 
@@ -143,9 +131,8 @@ class VariableAstNode : public AstNode {
 
 class BinaryExpressionAstNode : public AstNode {
  public:
-  BinaryExpressionAstNode(OperatorId op, std::unique_ptr<AstNode> lhs,
-                          std::unique_ptr<AstNode> rhs,
-                          std::string operator_str = "Unknown");
+  BinaryExpressionAstNode(const Token &token, std::unique_ptr<AstNode> lhs,
+                          std::unique_ptr<AstNode> rhs);
 
   BinaryExpressionAstNode(const BinaryExpressionAstNode &rhs);
 
@@ -164,7 +151,6 @@ class BinaryExpressionAstNode : public AstNode {
 
  private:
   OperatorId op_;
-  std::string stringifed_operator_;
   std::unique_ptr<AstNode> lhs_;
   std::unique_ptr<AstNode> rhs_;
 };
