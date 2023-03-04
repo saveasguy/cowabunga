@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   primary_builder->AddBuilder(variable_builder.get());
   primary_builder->AddBuilder(int_builder.get());
   kaleidoc::BinaryExpressionAstBuilder builder;
-  builder.AddPrimaryBuilder(primary_builder.get());
+  builder.SetPrimaryBuilder(primary_builder.get());
   auto ast = builder.Build(tokens.cbegin(), tokens.cend()).first;
   std::cout << *ast << std::endl;
   return 0;
