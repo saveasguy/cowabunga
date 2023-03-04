@@ -59,7 +59,8 @@ Checks: >
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type,
   -readability-identifier-length,
-  -abseil-string-find-startswith
+  -abseil-string-find-startswith,
+  -google-runtime-int
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
 
