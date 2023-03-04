@@ -1,8 +1,10 @@
 #ifndef KALEIDOC_SRC_DRIVER_H_
 #define KALEIDOC_SRC_DRIVER_H_
 
+#include <map>
 #include <memory>
 #include <ostream>
+#include <string>
 #include <vector>
 
 namespace kaleidoc {
@@ -28,7 +30,9 @@ enum TokenId {
 
 enum TokenPriority { kUnmatched = 0, kNormal = 1, kHigh = 2 };
 
-enum MetadataType {};  // Not implemented yet
+enum MetadataType {
+  kStringified,
+};  // Not implemented yet
 
 enum OperatorId {
   kAssignmentOp = TokenId::kAssignment,
@@ -38,7 +42,12 @@ enum OperatorId {
   kShiftRightOp = TokenId::kShiftRight
 };
 
-class Token;
+class IMetadataHandler {
+ public:
+  virtual void AddMetadata(MetadataType type, std::string value) = 0;
+
+  virtual const std::map<MetadataType, std::string> &metadata() const = 0;
+};
 
 template<class T> class IClonable {
  public:
@@ -49,6 +58,8 @@ class IPrintable {
  public:
   virtual void Print(std::ostream &out) const = 0;
 };
+
+class Token;
 
 class Tokenizer : public IClonable<Tokenizer> {
  public:
@@ -66,11 +77,30 @@ class Lexer {
   virtual ~Lexer() = default;
 };
 
-class AstNode : public IClonable<AstNode>, public IPrintable {
+class AstNode : public IClonable<AstNode>, public IPrintable, IMetadataHandler {
  public:
+  AstNode() = default;
+
+  AstNode(std::map<MetadataType, std::string> metainfo);
+
+  AstNode(const AstNode &node) = default;
+
+  AstNode(AstNode &&node) noexcept = default;
+
+  AstNode &operator=(const AstNode &node) = default;
+
+  AstNode &operator=(AstNode &&node) noexcept = default;
+
+  void AddMetadata(MetadataType type, std::string value) override;
+
+  const std::map<MetadataType, std::string> &metadata() const override;
+
   void Print(std::ostream &out) const override;
 
   virtual ~AstNode() = default;
+
+ protected:
+  std::map<MetadataType, std::string> metadata_;
 };
 
 std::ostream &operator<<(std::ostream &out, const AstNode &node);

@@ -1,8 +1,10 @@
 #include "parser.h"
 
+#include <cstdlib>
 #include <sstream>
 #include <utility>
 
+#include "driver.h"
 #include "lexer.h"
 
 namespace kaleidoc {
@@ -16,6 +18,13 @@ const char *UnknownAstBuilderRuleException::what() const noexcept {
   return msg_.c_str();
 }
 
+UnexpectedTokenException::UnexpectedTokenException(std::string msg)
+    : msg_{std::move(msg)} {}
+
+const char *UnexpectedTokenException::what() const noexcept {
+  return msg_.c_str();
+}
+
 // --- AST BUILDERS ---
 
 // INTEGRAL NUMBER AST BUILDER
@@ -26,8 +35,8 @@ IntegralNumberAstBuilder::Build(std::vector<Token>::const_iterator begin,
   if (begin == end || begin->id() != TokenId::kIntegralNumber) {
     return std::make_pair(nullptr, ++begin);
   }
-  long long value = std::stoll(begin->stringified());
-  return std::make_pair(std::make_unique<IntegralNumberAstNode>(value),
+
+  return std::make_pair(std::make_unique<IntegralNumberAstNode>(*begin),
                         begin + 1);
 }
 
@@ -43,8 +52,7 @@ VariableAstBuilder::Build(std::vector<Token>::const_iterator begin,
   if (begin == end || begin->id() != TokenId::kIdentifier) {
     return std::make_pair(nullptr, begin);
   }
-  return std::make_pair(std::make_unique<VariableAstNode>(begin->stringified()),
-                        begin + 1);
+  return std::make_pair(std::make_unique<VariableAstNode>(*begin), begin + 1);
 }
 
 std::unique_ptr<AstBuilder> VariableAstBuilder::Clone() const {
@@ -111,30 +119,30 @@ BinaryExpressionAstBuilder::BuildBinopRhsChain(
     std::vector<Token>::const_iterator begin,
     std::vector<Token>::const_iterator end,
     std::unique_ptr<AstNode> lhs) const {
-  auto operator_str = begin->stringified();
-  auto operator_id = static_cast<OperatorId>(begin->id());
-  int binop_precedence = operator_precedence_.at(operator_id);
+  auto op_token = begin;
+  int binop_precedence =
+      operator_precedence_.at(static_cast<OperatorId>(op_token->id()));
   auto rhs_result = BuildRhsPrimary(begin + 1, end);
   begin = rhs_result.second;
   if (begin == end || !TokenIsBinaryOperator(*begin)) {
-    return std::make_pair(std::make_unique<BinaryExpressionAstNode>(
-                              operator_id, std::move(lhs),
-                              std::move(rhs_result.first), operator_str),
-                          begin);
+    return std::make_pair(
+        std::make_unique<BinaryExpressionAstNode>(*op_token, std::move(lhs),
+                                                  std::move(rhs_result.first)),
+        begin);
   }
   auto next_operator_id = static_cast<OperatorId>(begin->id());
   int next_binop_precedence = operator_precedence_.at(next_operator_id);
   if (binop_precedence > next_binop_precedence) {
     auto lhs_ast = std::make_unique<BinaryExpressionAstNode>(
-        operator_id, std::move(lhs), std::move(rhs_result.first), operator_str);
+        *op_token, std::move(lhs), std::move(rhs_result.first));
     return BuildBinopRhsChain(begin, end, std::move(lhs_ast));
   }
   auto binop_rhs_result =
       BuildBinopRhsChain(begin, end, std::move(rhs_result.first));
-  return std::make_pair(std::make_unique<BinaryExpressionAstNode>(
-                            operator_id, std::move(lhs),
-                            std::move(binop_rhs_result.first), operator_str),
-                        binop_rhs_result.second);
+  return std::make_pair(
+      std::make_unique<BinaryExpressionAstNode>(
+          *op_token, std::move(lhs), std::move(binop_rhs_result.first)),
+      binop_rhs_result.second);
 }
 
 std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
@@ -146,8 +154,9 @@ BinaryExpressionAstBuilder::BuildRhsPrimary(
     std::stringstream str;
     if (result.second == end) {
       str << "Unexpected end of line!";
-    } else {
-      str << "Unexpected token: " << begin->stringified();
+    } else if (begin->metadata().count(MetadataType::kStringified)) {
+      str << "Unexpected token: "
+          << begin->metadata().at(MetadataType::kStringified);
     }
     throw UnknownAstBuilderRuleException{str.str()};
   }
@@ -170,33 +179,19 @@ std::unique_ptr<AstBuilder> BinaryExpressionAstBuilder::Clone() const {
 
 // --- AST NODES ---
 
-// EXPRESSION SEQUENCE AST NODE
-
-ExpressionSequenceAstNode::ExpressionSequenceAstNode(
-    std::unique_ptr<AstNode> lhs, std::unique_ptr<AstNode> rhs)
-    : lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
-
-ExpressionSequenceAstNode::ExpressionSequenceAstNode(
-    const ExpressionSequenceAstNode &rhs)
-    : lhs_{rhs.lhs_->Clone()}, rhs_{rhs.rhs_->Clone()} {}
-
-ExpressionSequenceAstNode &ExpressionSequenceAstNode::operator=(
-    const ExpressionSequenceAstNode &rhs) {
-  ExpressionSequenceAstNode new_node{rhs};
-  std::swap(*this, new_node);
-  return *this;
-}
-
-std::unique_ptr<AstNode> ExpressionSequenceAstNode::Clone() const {
-  return std::make_unique<ExpressionSequenceAstNode>(*this);
-}
-
 // INTEGRAL NUMBER AST NODE
 
-IntegralNumberAstNode::IntegralNumberAstNode(long long value) : value_{value} {}
+IntegralNumberAstNode::IntegralNumberAstNode(const Token &token)
+    : AstNode{token.metadata()} {
+  if (token.id() != TokenId::kIntegralNumber) {
+    std::stringstream str;
+    str << "Expected Token {" << TokenId::kIntegralNumber << "}, got " << token;
+    throw UnexpectedTokenException{str.str()};
+  }
+}
 
 void IntegralNumberAstNode::Print(std::ostream &out) const {
-  out << "Integer '" << value_ << "'";
+  out << "Integer '" << metadata_.at(MetadataType::kStringified) << "'";
 }
 
 std::unique_ptr<AstNode> IntegralNumberAstNode::Clone() const {
@@ -205,10 +200,17 @@ std::unique_ptr<AstNode> IntegralNumberAstNode::Clone() const {
 
 // VARIABLE AST NODE
 
-VariableAstNode::VariableAstNode(std::string name) : name_{std::move(name)} {}
+VariableAstNode::VariableAstNode(const Token &token)
+    : AstNode{token.metadata()} {
+  if (token.id() != TokenId::kIdentifier) {
+    std::stringstream str;
+    str << "Expected Token {" << TokenId::kIdentifier << "}, got " << token;
+    throw UnexpectedTokenException{str.str()};
+  }
+}
 
 void VariableAstNode::Print(std::ostream &out) const {
-  out << "Variable '" << name_ << "'";
+  out << "Variable '" << metadata_.at(MetadataType::kStringified) << "'";
 }
 
 std::unique_ptr<AstNode> VariableAstNode::Clone() const {
@@ -217,18 +219,25 @@ std::unique_ptr<AstNode> VariableAstNode::Clone() const {
 
 // BINARY EXPRESSION AST NODE
 
-BinaryExpressionAstNode::BinaryExpressionAstNode(OperatorId op,
+BinaryExpressionAstNode::BinaryExpressionAstNode(const Token &token,
                                                  std::unique_ptr<AstNode> lhs,
-                                                 std::unique_ptr<AstNode> rhs,
-                                                 std::string operator_str)
-    : op_{op},
-      lhs_{std::move(lhs)},
-      rhs_{std::move(rhs)},
-      stringifed_operator_{std::move(operator_str)} {}
+                                                 std::unique_ptr<AstNode> rhs)
+    : AstNode{token.metadata()}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {
+  if (token.id() < TokenId::kBinaryOperatorsRangeBegin ||
+      token.id() > TokenId::kBinaryOperatorsRangeEnd) {
+    std::stringstream str;
+    str << "Expected Token { binary_expression }, got " << token;
+    throw UnexpectedTokenException{str.str()};
+  }
+  op_ = static_cast<OperatorId>(token.id());
+}
 
 BinaryExpressionAstNode::BinaryExpressionAstNode(
     const BinaryExpressionAstNode &rhs)
-    : op_{rhs.op_}, lhs_{rhs.lhs_->Clone()}, rhs_{rhs.rhs_->Clone()} {}
+    : AstNode{rhs.metadata_},
+      op_{rhs.op_},
+      lhs_{rhs.lhs_->Clone()},
+      rhs_{rhs.rhs_->Clone()} {}
 
 BinaryExpressionAstNode &BinaryExpressionAstNode::operator=(
     const BinaryExpressionAstNode &rhs) {
@@ -240,7 +249,8 @@ BinaryExpressionAstNode &BinaryExpressionAstNode::operator=(
 OperatorId BinaryExpressionAstNode::operator_id() const { return op_; }
 
 void BinaryExpressionAstNode::Print(std::ostream &out) const {
-  out << stringifed_operator_ << "\n/" << *lhs_ << "\n\\" << *rhs_;
+  out << "BinaryOperator '" << metadata_.at(MetadataType::kStringified) << "'"
+      << "\n/" << *lhs_ << "\n\\" << *rhs_;
 }
 
 std::unique_ptr<AstNode> BinaryExpressionAstNode::Clone() const {

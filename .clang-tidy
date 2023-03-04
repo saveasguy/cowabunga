@@ -60,7 +60,9 @@ Checks: >
   -modernize-use-trailing-return-type,
   -readability-identifier-length,
   -abseil-string-find-startswith,
-  -google-runtime-int
+  -google-runtime-int,
+  -readability-container-contains,
+  -readability-implicit-bool-conversion
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
 
