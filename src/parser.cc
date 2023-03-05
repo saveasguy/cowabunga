@@ -95,12 +95,17 @@ std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
 BinaryExpressionAstBuilder::Build(
     std::vector<Token>::const_iterator begin,
     std::vector<Token>::const_iterator end) const {
-  auto lhs_result = primary_builder_->Build(begin, end);
-  if (!lhs_result.first) { return lhs_result; }
-  auto binop_result =
-      BuildBinopRhs(lhs_result.second, end, std::move(lhs_result.first));
-  if (!binop_result.first) { return std::make_pair(nullptr, begin); }
-  return binop_result;
+  auto result = primary_builder_->Build(begin, end);
+  if (!result.first || result.second == end ||
+      !TokenIsBinaryOperator(*result.second)) {
+    return std::make_pair(nullptr, begin);
+  }
+  auto binop_rhs_iterator = result.second;
+  result = BuildBinopRhs(binop_rhs_iterator, end, std::move(result.first));
+  if (result.second == binop_rhs_iterator) {
+    return std::make_pair(nullptr, begin);
+  }
+  return result;
 }
 
 std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
@@ -108,10 +113,20 @@ BinaryExpressionAstBuilder::BuildBinopRhs(
     std::vector<Token>::const_iterator begin,
     std::vector<Token>::const_iterator end,
     std::unique_ptr<AstNode> lhs) const {
-  if (begin == end || !TokenIsBinaryOperator(*begin)) {
-    return std::make_pair(nullptr, begin);
+  while (begin != end && TokenIsBinaryOperator(*begin)) {
+    auto op_token = begin;
+    ++begin;
+    auto rhs_result = BuildRhsPrimary(begin, end);
+    begin = rhs_result.second;
+    if (TokenIsBinaryOperator(*begin) &&
+        CompareBinopTokenPrecedences(*op_token, *begin) < 0) {
+      rhs_result = BuildBinopRhs(begin, end, std::move(rhs_result.first));
+      begin = rhs_result.second;
+    }
+    lhs = std::make_unique<BinaryExpressionAstNode>(
+        *op_token, std::move(lhs), std::move(rhs_result.first));
   }
-  return BuildBinopRhsChain(begin, end, std::move(lhs));
+  return std::make_pair(std::move(lhs), begin);
 }
 
 std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
@@ -120,8 +135,6 @@ BinaryExpressionAstBuilder::BuildBinopRhsChain(
     std::vector<Token>::const_iterator end,
     std::unique_ptr<AstNode> lhs) const {
   auto op_token = begin;
-  int binop_precedence =
-      operator_precedence_.at(static_cast<OperatorId>(op_token->id()));
   auto rhs_result = BuildRhsPrimary(begin + 1, end);
   begin = rhs_result.second;
   if (begin == end || !TokenIsBinaryOperator(*begin)) {
@@ -130,13 +143,7 @@ BinaryExpressionAstBuilder::BuildBinopRhsChain(
                                                   std::move(rhs_result.first)),
         begin);
   }
-  auto next_operator_id = static_cast<OperatorId>(begin->id());
-  int next_binop_precedence = operator_precedence_.at(next_operator_id);
-  if (binop_precedence > next_binop_precedence) {
-    auto lhs_ast = std::make_unique<BinaryExpressionAstNode>(
-        *op_token, std::move(lhs), std::move(rhs_result.first));
-    return BuildBinopRhsChain(begin, end, std::move(lhs_ast));
-  }
+  if (CompareBinopTokenPrecedences(*op_token, *begin) >= 0) {}
   auto binop_rhs_result =
       BuildBinopRhsChain(begin, end, std::move(rhs_result.first));
   return std::make_pair(
@@ -161,6 +168,14 @@ BinaryExpressionAstBuilder::BuildRhsPrimary(
     throw UnknownAstBuilderRuleException{str.str()};
   }
   return result;
+}
+
+int BinaryExpressionAstBuilder::CompareBinopTokenPrecedences(
+    const Token &lhs, const Token &rhs) const {
+  auto lhs_operator_id = static_cast<OperatorId>(lhs.id());
+  auto rhs_operator_id = static_cast<OperatorId>(rhs.id());
+  return operator_precedence_.at(lhs_operator_id) -
+         operator_precedence_.at(rhs_operator_id);
 }
 
 bool BinaryExpressionAstBuilder::TokenIsBinaryOperator(
@@ -249,8 +264,17 @@ BinaryExpressionAstNode &BinaryExpressionAstNode::operator=(
 OperatorId BinaryExpressionAstNode::operator_id() const { return op_; }
 
 void BinaryExpressionAstNode::Print(std::ostream &out) const {
+  static int d = 0;
   out << "BinaryOperator '" << metadata_.at(MetadataType::kStringified) << "'"
-      << "\n/" << *lhs_ << "\n\\" << *rhs_;
+      << "\n";
+  for (int i = 0; i < d; ++i) { out << "--"; }
+  ++d;
+  out << *lhs_ << "\n";
+  --d;
+  for (int i = 0; i < d; ++i) { out << "--"; }
+  ++d;
+  out << *rhs_;
+  --d;
 }
 
 std::unique_ptr<AstNode> BinaryExpressionAstNode::Clone() const {

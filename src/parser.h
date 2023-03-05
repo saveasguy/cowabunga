@@ -99,6 +99,8 @@ class BinaryExpressionAstBuilder : public AstBuilder {
   BuildRhsPrimary(std::vector<Token>::const_iterator begin,
                   std::vector<Token>::const_iterator end) const;
 
+  int CompareBinopTokenPrecedences(const Token &lhs, const Token &rhs) const;
+
   static bool TokenIsBinaryOperator(const Token &token) noexcept;
 
   static constexpr int kMaxPrecedence = 8;
