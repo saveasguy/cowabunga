@@ -42,6 +42,11 @@ enum OperatorId {
   kShiftRightOp = TokenId::kShiftRight
 };
 
+enum OperatorAssociativity {
+  kLeftToRight,
+  kRightToLeft
+};
+
 class IMetadataHandler {
  public:
   virtual void AddMetadata(MetadataType type, std::string value) = 0;
@@ -123,6 +128,10 @@ class Parser {
       std::vector<Token>::const_iterator begin,
       std::vector<Token>::const_iterator end) const = 0;
 };
+
+std::map<OperatorId, int> GetOperatorPrecedenceValues();
+
+std::map<OperatorId, OperatorAssociativity> GetOperatorAssociativityValues();
 
 class Driver {};
 
