@@ -88,21 +88,26 @@ class BinaryExpressionAstBuilder : public AstBuilder {
   std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
   BuildBinopRhs(std::vector<Token>::const_iterator begin,
                 std::vector<Token>::const_iterator end,
-                std::unique_ptr<AstNode> lhs) const;
-
-  std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
-  BuildBinopRhsChain(std::vector<Token>::const_iterator begin,
-                     std::vector<Token>::const_iterator end,
-                     std::unique_ptr<AstNode> lhs) const;
+                std::unique_ptr<AstNode> lhs, int expression_precedence = -1) const;
 
   std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
   BuildRhsPrimary(std::vector<Token>::const_iterator begin,
                   std::vector<Token>::const_iterator end) const;
 
+  bool PrecedenceLessOrEqualAndLhsRightAssociative(const Token &lhs, const Token &rhs) const;
+
+  bool PrecedenceGreaterOrEqualAndRightAssociative(const Token &lhs, int rhs_precedence) const;
+
+  int CompareBinopTokenPrecedences(const Token &lhs, const Token &rhs) const;
+
+  int CompareBinopTokenPrecedences(const Token &lhs, int rhs_precedence) const;
+
+  int BinaryOperatorTokenPrecedence(const Token &token) const;
+
   static bool TokenIsBinaryOperator(const Token &token) noexcept;
 
-  static constexpr int kMaxPrecedence = 8;
   std::map<OperatorId, int> operator_precedence_;
+  std::map<OperatorId, OperatorAssociativity> operator_associativity_;
   AstBuilder *primary_builder_;
 };
 
