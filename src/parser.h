@@ -4,6 +4,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -136,6 +137,8 @@ class IntegralNumberAstNode : public AstNode {
 
   void Print(std::ostream &out) const override;
 
+  void AcceptAstPrinter(AstPrinter *printer) const override;
+
   std::unique_ptr<AstNode> Clone() const override;
 };
 
@@ -144,6 +147,8 @@ class VariableAstNode : public AstNode {
   VariableAstNode(const Token &token);
 
   void Print(std::ostream &out) const override;
+
+  void AcceptAstPrinter(AstPrinter *printer) const override;
 
   std::unique_ptr<AstNode> Clone() const override;
 
@@ -168,6 +173,8 @@ class BinaryExpressionAstNode : public AstNode {
   OperatorId operator_id() const;
 
   void Print(std::ostream &out) const override;
+
+  void AcceptAstPrinter(AstPrinter *printer) const override;
 
   std::unique_ptr<AstNode> Clone() const override;
 
@@ -194,11 +201,26 @@ class ExpressionSequenceAstNode : public AstNode {
 
   void Print(std::ostream &out) const override;
 
+  void AcceptAstPrinter(AstPrinter *printer) const override;
+
   std::unique_ptr<AstNode> Clone() const override;
 
  private:
   std::unique_ptr<AstNode> lhs_expression_;
   std::unique_ptr<AstNode> rhs_expression_;
+};
+
+// --- AST PRINTERS ---
+
+class LadderAstPrinter : public AstPrinter {
+ public:
+  LadderAstPrinter(std::ostream &out);
+
+  void PrintAst(AstNode *node) override;
+
+ private:
+  std::ostream *out_;
+  int depth_ = 0;
 };
 
 }  // namespace kaleidoc

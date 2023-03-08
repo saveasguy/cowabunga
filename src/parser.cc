@@ -251,8 +251,15 @@ IntegralNumberAstNode::IntegralNumberAstNode(const Token &token)
 }
 
 void IntegralNumberAstNode::Print(std::ostream &out) const {
-  out << "Integer '" << metadata_.at(MetadataType::kStringified) << "'";
+  auto it = metadata_.find(MetadataType::kStringified);
+  if (it != metadata_.cend()) {
+    out << "Integer '" << it->second << "'";
+  } else {
+    out << "Integer '*unknown*'";
+  }
 }
+
+void IntegralNumberAstNode::AcceptAstPrinter(AstPrinter *printer) const {}
 
 std::unique_ptr<AstNode> IntegralNumberAstNode::Clone() const {
   return std::make_unique<IntegralNumberAstNode>(*this);
@@ -270,8 +277,15 @@ VariableAstNode::VariableAstNode(const Token &token)
 }
 
 void VariableAstNode::Print(std::ostream &out) const {
-  out << "Variable '" << metadata_.at(MetadataType::kStringified) << "'";
+  auto it = metadata_.find(MetadataType::kStringified);
+  if (it != metadata_.cend()) {
+    out << "Variable '" << it->second << "'";
+  } else {
+    out << "Variable '*unknown*'";
+  }
 }
+
+void VariableAstNode::AcceptAstPrinter(AstPrinter *printer) const {}
 
 std::unique_ptr<AstNode> VariableAstNode::Clone() const {
   return std::make_unique<VariableAstNode>(*this);
@@ -309,17 +323,17 @@ BinaryExpressionAstNode &BinaryExpressionAstNode::operator=(
 OperatorId BinaryExpressionAstNode::operator_id() const { return op_; }
 
 void BinaryExpressionAstNode::Print(std::ostream &out) const {
-  static int d = 0;
-  out << "BinaryOperator '" << metadata_.at(MetadataType::kStringified) << "'"
-      << "\n";
-  for (int i = 0; i < d; ++i) { out << "--"; }
-  ++d;
-  out << *lhs_ << "\n";
-  --d;
-  for (int i = 0; i < d; ++i) { out << "--"; }
-  ++d;
-  out << *rhs_;
-  --d;
+  auto it = metadata_.find(MetadataType::kStringified);
+  if (it != metadata_.cend()) {
+    out << "BinaryOperator '" << it->second << "'";
+  } else {
+    out << "BinaryOperator '*unknown*'";
+  }
+}
+
+void BinaryExpressionAstNode::AcceptAstPrinter(AstPrinter *printer) const {
+  printer->PrintAst(lhs_.get());
+  printer->PrintAst(rhs_.get());
 }
 
 std::unique_ptr<AstNode> BinaryExpressionAstNode::Clone() const {
@@ -350,14 +364,36 @@ ExpressionSequenceAstNode &ExpressionSequenceAstNode::operator=(
 }
 
 void ExpressionSequenceAstNode::Print(std::ostream &out) const {
-  out << *lhs_expression_ << "\n" << metadata_.at(MetadataType::kStringified) << "\n";
-  if (rhs_expression_) {
-    out << *rhs_expression_;
+  auto it = metadata_.find(MetadataType::kStringified);
+  if (it != metadata_.cend()) {
+    out << "ExpressionSequence '" << it->second << "'";
+  } else {
+    out << "ExpressionSequence '*unknown*'";
   }
+}
+
+void ExpressionSequenceAstNode::AcceptAstPrinter(AstPrinter *printer) const {
+  printer->PrintAst(lhs_expression_.get());
+  if (rhs_expression_) { printer->PrintAst(rhs_expression_.get()); }
 }
 
 std::unique_ptr<AstNode> ExpressionSequenceAstNode::Clone() const {
   return std::make_unique<ExpressionSequenceAstNode>(*this);
+}
+
+// --- AST PRINTERS ---
+
+// Ladder Ast Printer
+
+LadderAstPrinter::LadderAstPrinter(std::ostream &out) : out_{&out} {}
+
+void LadderAstPrinter::PrintAst(AstNode *node) {
+  for (int i = 0; i < depth_; ++i) { *out_ << "--"; }
+  node->Print(*out_);
+  *out_ << std::endl;
+  ++depth_;
+  node->AcceptAstPrinter(this);
+  --depth_;
 }
 
 }  // namespace kaleidoc

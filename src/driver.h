@@ -42,10 +42,7 @@ enum OperatorId {
   kShiftRightOp = TokenId::kShiftRight
 };
 
-enum OperatorAssociativity {
-  kLeftToRight,
-  kRightToLeft
-};
+enum OperatorAssociativity { kLeftToRight, kRightToLeft };
 
 class IMetadataHandler {
  public:
@@ -82,6 +79,13 @@ class Lexer {
   virtual ~Lexer() = default;
 };
 
+class AstNode;
+
+class AstPrinter {
+ public:
+  virtual void PrintAst(AstNode *node) = 0;
+};
+
 class AstNode : public IClonable<AstNode>, public IPrintable, IMetadataHandler {
  public:
   AstNode() = default;
@@ -101,6 +105,8 @@ class AstNode : public IClonable<AstNode>, public IPrintable, IMetadataHandler {
   const std::map<MetadataType, std::string> &metadata() const override;
 
   void Print(std::ostream &out) const override;
+
+  virtual void AcceptAstPrinter(AstPrinter *printer) const = 0;
 
   virtual ~AstNode() = default;
 
