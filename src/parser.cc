@@ -1,8 +1,10 @@
 #include "parser.h"
 
 #include <cstdlib>
+#include <memory>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 #include "driver.h"
 #include "lexer.h"
@@ -201,6 +203,40 @@ std::unique_ptr<AstBuilder> BinaryExpressionAstBuilder::Clone() const {
   return std::make_unique<BinaryExpressionAstBuilder>(*this);
 }
 
+// EXPRESSION SEQUENCE AST BUILDER
+
+std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
+ExpressionSequenceAstBuilder::Build(
+    std::vector<Token>::const_iterator begin,
+    std::vector<Token>::const_iterator end) const {
+  if (begin == end) { return std::make_pair(nullptr, begin); }
+  std::unique_ptr<AstNode> lhs_ast;
+  auto it = begin;
+  for (auto *builder : expression_builders_) {
+    auto temp_result = builder->Build(begin, end);
+    if (temp_result.first && temp_result.second - it > 0) {
+      lhs_ast = std::move(temp_result.first);
+      it = temp_result.second;
+    }
+  }
+  if (it == end || it->id() != TokenId::kExpressionSeparator) {
+    return std::make_pair(nullptr, begin);
+  }
+  auto sequence_separator_it = it;
+  auto rhs_result = Build(it + 1, end);
+  auto sequence_expr = std::make_unique<ExpressionSequenceAstNode>(
+      *sequence_separator_it, std::move(lhs_ast), std::move(rhs_result.first));
+  return std::make_pair(std::move(sequence_expr), rhs_result.second);
+}
+
+void ExpressionSequenceAstBuilder::AddExpressionBuilder(AstBuilder *builder) {
+  expression_builders_.push_back(builder);
+}
+
+std::unique_ptr<AstBuilder> ExpressionSequenceAstBuilder::Clone() const {
+  return std::make_unique<ExpressionSequenceAstBuilder>(*this);
+}
+
 // --- AST NODES ---
 
 // INTEGRAL NUMBER AST NODE
@@ -288,6 +324,40 @@ void BinaryExpressionAstNode::Print(std::ostream &out) const {
 
 std::unique_ptr<AstNode> BinaryExpressionAstNode::Clone() const {
   return std::make_unique<BinaryExpressionAstNode>(*this);
+}
+
+// EXPRESSION SEQUENCE AST NODE
+
+ExpressionSequenceAstNode::ExpressionSequenceAstNode(
+    const Token &expression_separator_token,
+    std::unique_ptr<AstNode> lhs_expression,
+    std::unique_ptr<AstNode> rhs_expression)
+    : AstNode{expression_separator_token.metadata()},
+      lhs_expression_{std::move(lhs_expression)},
+      rhs_expression_{std::move(rhs_expression)} {}
+
+ExpressionSequenceAstNode::ExpressionSequenceAstNode(
+    const ExpressionSequenceAstNode &rhs)
+    : AstNode{rhs.metadata_},
+      lhs_expression_{rhs.lhs_expression_->Clone()},
+      rhs_expression_{rhs.rhs_expression_->Clone()} {}
+
+ExpressionSequenceAstNode &ExpressionSequenceAstNode::operator=(
+    const ExpressionSequenceAstNode &rhs) {
+  ExpressionSequenceAstNode new_node{rhs};
+  std::swap(new_node, *this);
+  return *this;
+}
+
+void ExpressionSequenceAstNode::Print(std::ostream &out) const {
+  out << *lhs_expression_ << "\n" << metadata_.at(MetadataType::kStringified) << "\n";
+  if (rhs_expression_) {
+    out << *rhs_expression_;
+  }
+}
+
+std::unique_ptr<AstNode> ExpressionSequenceAstNode::Clone() const {
+  return std::make_unique<ExpressionSequenceAstNode>(*this);
 }
 
 }  // namespace kaleidoc
