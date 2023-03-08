@@ -88,15 +88,18 @@ class BinaryExpressionAstBuilder : public AstBuilder {
   std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
   BuildBinopRhs(std::vector<Token>::const_iterator begin,
                 std::vector<Token>::const_iterator end,
-                std::unique_ptr<AstNode> lhs, int expression_precedence = -1) const;
+                std::unique_ptr<AstNode> lhs,
+                int expression_precedence = -1) const;
 
   std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator>
   BuildRhsPrimary(std::vector<Token>::const_iterator begin,
                   std::vector<Token>::const_iterator end) const;
 
-  bool PrecedenceLessOrEqualAndLhsRightAssociative(const Token &lhs, const Token &rhs) const;
+  bool PrecedenceLessOrEqualAndLhsRightAssociative(const Token &lhs,
+                                                   const Token &rhs) const;
 
-  bool PrecedenceGreaterOrEqualAndRightAssociative(const Token &lhs, int rhs_precedence) const;
+  bool PrecedenceGreaterOrEqualAndRightAssociative(const Token &lhs,
+                                                   int rhs_precedence) const;
 
   int CompareBinopTokenPrecedences(const Token &lhs, const Token &rhs) const;
 
@@ -109,6 +112,20 @@ class BinaryExpressionAstBuilder : public AstBuilder {
   std::map<OperatorId, int> operator_precedence_;
   std::map<OperatorId, OperatorAssociativity> operator_associativity_;
   AstBuilder *primary_builder_;
+};
+
+class ExpressionSequenceAstBuilder : public AstBuilder {
+ public:
+  std::pair<std::unique_ptr<AstNode>, std::vector<Token>::const_iterator> Build(
+      std::vector<Token>::const_iterator begin,
+      std::vector<Token>::const_iterator end) const override;
+
+  void AddExpressionBuilder(AstBuilder *builder);
+
+  std::unique_ptr<AstBuilder> Clone() const override;
+
+ private:
+  std::vector<AstBuilder *> expression_builders_;
 };
 
 // --- AST NODES ---
@@ -158,6 +175,30 @@ class BinaryExpressionAstNode : public AstNode {
   OperatorId op_;
   std::unique_ptr<AstNode> lhs_;
   std::unique_ptr<AstNode> rhs_;
+};
+
+class ExpressionSequenceAstNode : public AstNode {
+ public:
+  ExpressionSequenceAstNode(const Token &expression_separator_token,
+                            std::unique_ptr<AstNode> lhs_expression,
+                            std::unique_ptr<AstNode> rhs_expression);
+
+  ExpressionSequenceAstNode(const ExpressionSequenceAstNode &rhs);
+
+  ExpressionSequenceAstNode(ExpressionSequenceAstNode &&rhs) noexcept = default;
+
+  ExpressionSequenceAstNode &operator=(const ExpressionSequenceAstNode &rhs);
+
+  ExpressionSequenceAstNode &operator=(
+      ExpressionSequenceAstNode &&rhs) noexcept = default;
+
+  void Print(std::ostream &out) const override;
+
+  std::unique_ptr<AstNode> Clone() const override;
+
+ private:
+  std::unique_ptr<AstNode> lhs_expression_;
+  std::unique_ptr<AstNode> rhs_expression_;
 };
 
 }  // namespace kaleidoc
