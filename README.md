@@ -1,23 +1,23 @@
-# Kaleidoc
+# Cowabunga
 ## About
-Kaleidoc is a compiler based on the compiler from LLVM Kaledoscope tutorial (https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html). Language behind this compiler differs from the one described in tutorial.
+**Cowabunga** is a programming language inspired by LLVM Kaleidoscope tutorial (https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html). **cbc** is a compiler for **Cowabunga** language.
 
 ## Getting Started
 To get started, see [Requirements](#requirements) and [Installation](#installation). See [Usage](#usage) for an example.
 
 ## Requirements
 The following required to use "Kaleidoc" compiler:
-* Git
-* Any C++ compiler (Clang, GCC, etc)
-* CMake 3.0
+* git
+* clang++-15
+* cmake 3.13+
 
 ## Installation
 This describes the installation process using **cmake**.    
 ```
 # Clone repository:
-git clone https://gitlab.com/al-romanov/kaleidoc.git
+git clone https://github.com/al-romanov/cowabunga.git
 # Go to the project root directory:
-cd kaleidoc
+cd cowabunga
 # Generate build files:
 cmake -S . -B build
 # Build the project:
@@ -25,9 +25,9 @@ cmake --build build
 ```
 
 ## Usage
-To play with compiler. *main.ks* file is provided.   
-To run compiler on *main.ks*, execute following command:
+To play with compiler, *main.cb* file is provided.   
+To run compiler on *main.cb*, execute following command:
 ```
 # Go to project root directory
-./build/kaleidoc main.ks
+./build/cbc/cbc main.cb
 ```
