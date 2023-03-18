@@ -34,9 +34,6 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  std::string name() const;
-
-private:
   common::Metadata MetadataStorage;
   std::string Name;
 };
@@ -50,9 +47,6 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  long long value() const noexcept;
-
-private:
   common::Metadata MetadataStorage;
   long long Value;
 };
@@ -76,35 +70,31 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  OperatorID operatorID() const noexcept;
-
-private:
   common::Metadata MetadataStorage;
   std::unique_ptr<IASTNode> LHS;
   std::unique_ptr<IASTNode> RHS;
-  OperatorID OperatorIDValue;
+  OperatorID OpID;
 };
 
-class ExpressionSequenceASTNode final
-    : public common::IClonableMixin<IASTNode, ExpressionSequenceASTNode> {
+class CompoundExpressionASTNode final
+    : public common::IClonableMixin<IASTNode, CompoundExpressionASTNode> {
 public:
-  ExpressionSequenceASTNode(const common::Token &Tok,
+  CompoundExpressionASTNode(const common::Token &Tok,
                             std::unique_ptr<IASTNode> FirstExpression,
                             std::unique_ptr<IASTNode> ReminingExpression);
 
-  ExpressionSequenceASTNode(const ExpressionSequenceASTNode &RHS);
+  CompoundExpressionASTNode(const CompoundExpressionASTNode &RHS);
 
-  ExpressionSequenceASTNode(ExpressionSequenceASTNode &&RHS) noexcept = default;
+  CompoundExpressionASTNode(CompoundExpressionASTNode &&RHS) noexcept = default;
 
-  ExpressionSequenceASTNode &operator=(const ExpressionSequenceASTNode &RHS);
+  CompoundExpressionASTNode &operator=(const CompoundExpressionASTNode &RHS);
 
-  ExpressionSequenceASTNode &operator=(ExpressionSequenceASTNode &&RHS) noexcept = default;
+  CompoundExpressionASTNode &operator=(CompoundExpressionASTNode &&RHS) noexcept = default;
 
   void acceptASTPass(IASTPass &Pass) override;
 
   void print(std::ostream &Out) const override;
 
-private:
   common::Metadata MetadataStorage;
   std::unique_ptr<IASTNode> First;
   std::unique_ptr<IASTNode> Second;

@@ -24,12 +24,6 @@ public:
 
   void print(std::ostream &Out) const;
 
-  common::Metadata &metadata() noexcept;
-
-  common::Metadata metadata() const;
-
-  std::string metadata(MetadataType Type) const;
-
   int id() const noexcept;
 
   int priority() const noexcept;
@@ -38,8 +32,9 @@ public:
 
   operator bool() const noexcept;
 
-private:
   common::Metadata MetadataStorage;
+
+private:
   int ID;
   int Priority;
   bool Initialized;

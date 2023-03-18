@@ -1,3 +1,4 @@
+#include "cbc/ASTPasses.h"
 #include "cbc/Driver.h"
 #include "cbc/Parsers.h"
 #include "cbc/Tokenizers.h"
@@ -23,25 +24,32 @@ int main(int argc, char **argv) {
   if (argc == 2) {
     Script.open(argv[1]);
   } else {
-    std::cerr << "No input files" << std::endl;
-    exit(1);
+    std::cerr << "No input files." << std::endl;
+    return 1;
+  }
+  if (!Script) {
+    std::cerr << "File not found." << std::endl;
+    return 2;
   }
   auto Tokens = Lexer.produceTokens(Script);
   if (!Tokens) {
-    std::cerr << "Failed to parse input file" << std::endl;
-    exit(1);
+    std::cerr << "Failed to parse input file." << std::endl;
+    return 3;
   }
   for (auto &Token : *Tokens) {
     std::cout << Token << std::endl;
   }
-  ExpressionParser Parser;
+  CompoundExpressionParser Parser;
   auto It = Parser.match(Tokens->cbegin(), Tokens->cend());
   bool Ok = (It == Tokens->cend());
   std::cout << Ok << std::endl;
   if (!Ok) {
-    return 1;
+    std::cerr << "Failed to parse input file." << std::endl;
+    return 3;
   }
   auto AST = Parser.parse(Tokens->cbegin(), Tokens->cend());
-  std::cout << *AST << std::endl;
+  ASTPrinter Printer(std::cout);
+  AST->acceptASTPass(Printer);
+  std::cout << std::endl;
   return 0;
 }

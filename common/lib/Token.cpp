@@ -29,14 +29,6 @@ void Token::print(std::ostream &Out) const {
       << "}";
 }
 
-common::Metadata &Token::metadata() noexcept { return MetadataStorage; }
-
-common::Metadata Token::metadata() const { return MetadataStorage; }
-
-std::string Token::metadata(MetadataType Type) const {
-  return MetadataStorage.get(Type);
-}
-
 int Token::id() const noexcept { return ID; }
 
 int Token::priority() const noexcept { return Priority; }
