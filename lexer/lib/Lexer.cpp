@@ -51,7 +51,7 @@ Lexer::produceTokens(std::istream &Input) {
     }
     Tokens.push_back(std::move(Result.first));
     Offset = Result.second.length();
-    Tokens.back().metadata().set(common::Stringified, Result.second);
+    Tokens.back().MetadataStorage.set(common::Stringified, Result.second);
   } while (Input);
   return Tokens;
 }

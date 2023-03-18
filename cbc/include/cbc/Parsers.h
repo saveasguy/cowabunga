@@ -156,7 +156,7 @@ public:
   }
 };
 
-class BasicExpressionParser final
+class ExpressionParser final
     : public IParser<std::unique_ptr<IASTNode>>,
       public Sequence<GeneralExpressionParser, Terminal<ExpressionSeparator>> {
 public:
@@ -171,11 +171,11 @@ public:
   }
 };
 
-class ExpressionParser;
+class CompoundExpressionParser;
 
-class MultipleBasicExpressionsParser final
+class CompoundExpressionHelper final
     : public IParser<std::unique_ptr<IASTNode>>,
-      public Sequence<BasicExpressionParser, ExpressionParser> {
+      public Sequence<ExpressionParser, CompoundExpressionParser> {
 public:
   std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
                                   TokenIterator ItEnd) override {
@@ -194,18 +194,18 @@ public:
         });
     assert(Expressions[0] && Expressions[1] &&
            "Subsuquent expressions expected");
-    BasicExpressionParser BasicExprParser;
+    ExpressionParser BasicExprParser;
     auto ExpressionSeparatorToken =
         BasicExprParser.match(ItBegin, ItMatchedEnd) - 1;
-    return std::make_unique<ExpressionSequenceASTNode>(
+    return std::make_unique<CompoundExpressionASTNode>(
         *ExpressionSeparatorToken, std::move(Expressions[0]),
         std::move(Expressions[1]));
   }
 };
 
-class ExpressionParser final
+class CompoundExpressionParser final
     : public IParser<std::unique_ptr<IASTNode>>,
-      public Optional<BasicExpressionParser, MultipleBasicExpressionsParser> {
+      public Optional<ExpressionParser, CompoundExpressionHelper> {
 public:
   std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
                                   TokenIterator ItEnd) override {

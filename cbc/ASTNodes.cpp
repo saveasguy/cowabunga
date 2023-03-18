@@ -1,4 +1,5 @@
 #include "cbc/ASTNodes.h"
+#include "cbc/ASTPasses.h"
 #include "cbc/Driver.h"
 #include "common/Metadata.h"
 #include "common/Token.h"
@@ -10,38 +11,38 @@
 namespace cb {
 
 VariableASTNode::VariableASTNode(const common::Token &Tok)
-    : MetadataStorage(Tok.metadata()), Name(Tok.metadata(common::Stringified)) {
+    : MetadataStorage(Tok.MetadataStorage),
+      Name(Tok.MetadataStorage.get(common::Stringified)) {
   assert(Tok.id() == Identifier && "Expected identifier token");
 }
 
-void VariableASTNode::acceptASTPass(IASTPass &Pass) {}
-
-void VariableASTNode::print(std::ostream &Out) const {
-  Out << "Variable '" << name() << "'";
+void VariableASTNode::acceptASTPass(IASTPass &Pass) {
+  Pass.accept(*this);
 }
 
-std::string VariableASTNode::name() const { return Name; }
+void VariableASTNode::print(std::ostream &Out) const {
+  Out << "Variable '" << Name << "'";
+}
 
 IntegralNumberASTNode::IntegralNumberASTNode(const common::Token &Tok)
-    : MetadataStorage(Tok.metadata()),
-      Value(std::stoll(Tok.metadata(common::Stringified))) {
+    : MetadataStorage(Tok.MetadataStorage),
+      Value(std::stoll(Tok.MetadataStorage.get(common::Stringified))) {
   assert(Tok.id() == IntegralNumber && "Expected integral number token");
 }
 
-void IntegralNumberASTNode::acceptASTPass(IASTPass &Pass) {}
-
-void IntegralNumberASTNode::print(std::ostream &Out) const {
-  Out << "Integral Number '" << value() << "'";
+void IntegralNumberASTNode::acceptASTPass(IASTPass &Pass) {
+  Pass.accept(*this);
 }
 
-long long IntegralNumberASTNode::value() const noexcept { return Value; }
+void IntegralNumberASTNode::print(std::ostream &Out) const {
+  Out << "Integral Number '" << Value << "'";
+}
 
 BinaryExpressionASTNode::BinaryExpressionASTNode(
     const common::Token &Tok, std::unique_ptr<IASTNode> LHSExpression,
     std::unique_ptr<IASTNode> RHSExpression)
-    : MetadataStorage(Tok.metadata()), LHS(std::move(LHSExpression)),
-      RHS(std::move(RHSExpression)),
-      OperatorIDValue(static_cast<OperatorID>(Tok.id())) {
+    : MetadataStorage(Tok.MetadataStorage), LHS(std::move(LHSExpression)),
+      RHS(std::move(RHSExpression)), OpID(static_cast<OperatorID>(Tok.id())) {
   assert(Tok.id() > BinaryOperatorsRangeBegin &&
          Tok.id() < BinaryOperatorsRangeEnd &&
          "Expected binary expression token");
@@ -60,44 +61,43 @@ BinaryExpressionASTNode &BinaryExpressionASTNode::operator=(
   return *this;
 }
 
-void BinaryExpressionASTNode::acceptASTPass(IASTPass &Pass) {}
+void BinaryExpressionASTNode::acceptASTPass(IASTPass &Pass) {
+  Pass.accept(*this);
+}
 
 void BinaryExpressionASTNode::print(std::ostream &Out) const {
   Out << "Binary Expression '" << MetadataStorage.get(common::Stringified)
       << "'";
-  Out << " " << *LHS << " " << *RHS;
 }
 
-OperatorID BinaryExpressionASTNode::operatorID() const noexcept {
-  return OperatorIDValue;
-}
-
-ExpressionSequenceASTNode::ExpressionSequenceASTNode(
+CompoundExpressionASTNode::CompoundExpressionASTNode(
     const common::Token &Tok, std::unique_ptr<IASTNode> FirstExpression,
     std::unique_ptr<IASTNode> SecondExpression)
-    : MetadataStorage(Tok.metadata()), First(std::move(FirstExpression)),
+    : MetadataStorage(Tok.MetadataStorage), First(std::move(FirstExpression)),
       Second(std::move(SecondExpression)) {
   assert(Tok.id() == ExpressionSeparator &&
          "Expected expression separator token");
 }
 
-ExpressionSequenceASTNode::ExpressionSequenceASTNode(
-    const ExpressionSequenceASTNode &RHS)
+CompoundExpressionASTNode::CompoundExpressionASTNode(
+    const CompoundExpressionASTNode &RHS)
     : MetadataStorage(RHS.MetadataStorage), First(RHS.First->clone()),
       Second(RHS.Second->clone()) {}
 
-ExpressionSequenceASTNode &
-ExpressionSequenceASTNode::operator=(const ExpressionSequenceASTNode &RHS) {
-  ExpressionSequenceASTNode NewASTNode(RHS);
+CompoundExpressionASTNode &
+CompoundExpressionASTNode::operator=(const CompoundExpressionASTNode &RHS) {
+  CompoundExpressionASTNode NewASTNode(RHS);
   std::swap(*this, NewASTNode);
   return *this;
 }
 
-void ExpressionSequenceASTNode::acceptASTPass(IASTPass &Pass) {}
+void CompoundExpressionASTNode::acceptASTPass(IASTPass &Pass) {
+  Pass.accept(*this);
+}
 
-void ExpressionSequenceASTNode::print(std::ostream &Out) const {
-  Out << "Expression Sequence '" << MetadataStorage.get(common::Stringified) << "'";
-  Out << "\n" << *First << "\n" << *Second;
+void CompoundExpressionASTNode::print(std::ostream &Out) const {
+  Out << "Expression Sequence '" << MetadataStorage.get(common::Stringified)
+      << "'";
 }
 
 } // namespace cb
