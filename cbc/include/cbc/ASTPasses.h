@@ -14,12 +14,14 @@ public:
 
   virtual void accept(BinaryExpressionASTNode &Node) = 0;
 
+  virtual void accept(ParenthesizedExpressionASTNode &Node) = 0;
+
   virtual void accept(CompoundExpressionASTNode &Node) = 0;
 
   virtual ~IASTPass() = default;
 };
 
-class ASTPrinter: public IASTPass {
+class ASTPrinter : public IASTPass {
 public:
   ASTPrinter(std::ostream &OStream);
 
@@ -28,6 +30,8 @@ public:
   void accept(IntegralNumberASTNode &Node) override;
 
   void accept(BinaryExpressionASTNode &Node) override;
+
+  void accept(ParenthesizedExpressionASTNode &Node) override;
 
   void accept(CompoundExpressionASTNode &Node) override;
 

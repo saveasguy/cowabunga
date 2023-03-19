@@ -15,10 +15,13 @@ int main(int argc, char **argv) {
       .addTokenizer(IdentifierTokenizer())
       .addTokenizer(KeywordTokenizer(ExpressionSeparator, ";"))
       .addTokenizer(KeywordTokenizer(Assignment, "="))
-      .addTokenizer(KeywordTokenizer(Plus, "+"))
-      .addTokenizer(KeywordTokenizer(Minus, "-"))
+      .addTokenizer(KeywordTokenizer(Addition, "+"))
+      .addTokenizer(KeywordTokenizer(Substraction, "-"))
       .addTokenizer(KeywordTokenizer(ShiftLeft, "<<"))
-      .addTokenizer(KeywordTokenizer(ShiftRight, ">>"));
+      .addTokenizer(KeywordTokenizer(ShiftRight, ">>"))
+      .addTokenizer(KeywordTokenizer(OpenParantheses, "("))
+      .addTokenizer(KeywordTokenizer(CloseParantheses, ")"))
+      .addTokenizer(KeywordTokenizer(Multiplication, "*"));
 
   std::ifstream Script;
   if (argc == 2) {
@@ -45,9 +48,13 @@ int main(int argc, char **argv) {
   std::cout << Ok << std::endl;
   if (!Ok) {
     std::cerr << "Failed to parse input file." << std::endl;
-    return 3;
+    return 4;
   }
   auto AST = Parser.parse(Tokens->cbegin(), Tokens->cend());
+  if (!AST) {
+    std::cerr << "Failed to build AST." << std::endl;
+    return 4;
+  }
   ASTPrinter Printer(std::cout);
   AST->acceptASTPass(Printer);
   std::cout << std::endl;

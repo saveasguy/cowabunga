@@ -16,9 +16,7 @@ VariableASTNode::VariableASTNode(const common::Token &Tok)
   assert(Tok.id() == Identifier && "Expected identifier token");
 }
 
-void VariableASTNode::acceptASTPass(IASTPass &Pass) {
-  Pass.accept(*this);
-}
+void VariableASTNode::acceptASTPass(IASTPass &Pass) { Pass.accept(*this); }
 
 void VariableASTNode::print(std::ostream &Out) const {
   Out << "Variable '" << Name << "'";
@@ -68,6 +66,37 @@ void BinaryExpressionASTNode::acceptASTPass(IASTPass &Pass) {
 void BinaryExpressionASTNode::print(std::ostream &Out) const {
   Out << "Binary Expression '" << MetadataStorage.get(common::Stringified)
       << "'";
+}
+
+ParenthesizedExpressionASTNode::ParenthesizedExpressionASTNode(
+    const common::Token &OpenParentheses,
+    std::unique_ptr<IASTNode> InternalExpression,
+    const common::Token &CloseParentheses)
+    : Expression(std::move(InternalExpression)) {
+  MetadataStorage.set(
+      common::Stringified,
+      OpenParentheses.MetadataStorage.get(common::Stringified) +
+          CloseParentheses.MetadataStorage.get(common::Stringified));
+}
+
+ParenthesizedExpressionASTNode::ParenthesizedExpressionASTNode(
+    const ParenthesizedExpressionASTNode &RHS)
+    : MetadataStorage(RHS.MetadataStorage),
+      Expression(RHS.Expression->clone()) {}
+
+ParenthesizedExpressionASTNode &ParenthesizedExpressionASTNode::operator=(
+    const ParenthesizedExpressionASTNode &RHS) {
+  ParenthesizedExpressionASTNode NewAST(RHS);
+  std::swap(*this, NewAST);
+  return *this;
+}
+
+void ParenthesizedExpressionASTNode::acceptASTPass(IASTPass &Pass) {
+  Pass.accept(*this);
+}
+
+void ParenthesizedExpressionASTNode::print(std::ostream &Out) const {
+  Out << "Parenthesized Expression '" << MetadataStorage.get(common::Stringified) << "'";
 }
 
 CompoundExpressionASTNode::CompoundExpressionASTNode(

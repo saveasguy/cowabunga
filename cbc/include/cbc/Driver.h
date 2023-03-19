@@ -12,8 +12,8 @@ enum TokenID {
   ArgumentSeparator,
   BinaryOperatorsRangeBegin,
   Assignment,
-  Plus,
-  Minus,
+  Addition,
+  Substraction,
   Multiplication,
   ShiftLeft,
   ShiftRight,
@@ -30,8 +30,9 @@ enum TokenPriority { Unmatched = 0, Normal = 1, High = 2 };
 
 enum OperatorID {
   AssignmentOp = TokenID::Assignment,
-  PlusOp = TokenID::Plus,
-  MinusOp = TokenID::Minus,
+  MultiplicationOp = TokenID::Multiplication,
+  AdditionOp = TokenID::Addition,
+  SubstractionOp = TokenID::Substraction,
   ShiftLeftOp = TokenID::ShiftLeft,
   ShiftRightOp = TokenID::ShiftRight
 };
