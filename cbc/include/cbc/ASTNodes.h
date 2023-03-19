@@ -60,11 +60,14 @@ public:
 
   BinaryExpressionASTNode(const BinaryExpressionASTNode &RHSBinaryExpression);
 
-  BinaryExpressionASTNode(BinaryExpressionASTNode &&RHSBinaryExpression) noexcept = default;
+  BinaryExpressionASTNode(
+      BinaryExpressionASTNode &&RHSBinaryExpression) noexcept = default;
 
-  BinaryExpressionASTNode &operator=(const BinaryExpressionASTNode &RHSBinaryExpression);
+  BinaryExpressionASTNode &
+  operator=(const BinaryExpressionASTNode &RHSBinaryExpression);
 
-  BinaryExpressionASTNode &operator=(BinaryExpressionASTNode &&RHSBinaryExpression) noexcept = default;
+  BinaryExpressionASTNode &
+  operator=(BinaryExpressionASTNode &&RHSBinaryExpression) noexcept = default;
 
   void acceptASTPass(IASTPass &Pass) override;
 
@@ -76,10 +79,36 @@ public:
   OperatorID OpID;
 };
 
+class ParenthesizedExpressionASTNode final
+    : public common::IClonableMixin<IASTNode, ParenthesizedExpressionASTNode> {
+public:
+  ParenthesizedExpressionASTNode(const common::Token &OpenParentheses,
+                                 std::unique_ptr<IASTNode> InternalExpression,
+                                 const common::Token &CloseParentheses);
+
+  ParenthesizedExpressionASTNode(const ParenthesizedExpressionASTNode &RHS);
+
+  ParenthesizedExpressionASTNode(
+      ParenthesizedExpressionASTNode &&RHS) noexcept = default;
+
+  ParenthesizedExpressionASTNode &
+  operator=(const ParenthesizedExpressionASTNode &RHS);
+
+  ParenthesizedExpressionASTNode &
+  operator=(ParenthesizedExpressionASTNode &&RHS) noexcept = default;
+
+  void acceptASTPass(IASTPass &Pass) override;
+
+  void print(std::ostream &Out) const override;
+
+  common::Metadata MetadataStorage;
+  std::unique_ptr<IASTNode> Expression;
+};
+
 class CompoundExpressionASTNode final
     : public common::IClonableMixin<IASTNode, CompoundExpressionASTNode> {
 public:
-  CompoundExpressionASTNode(const common::Token &Tok,
+  CompoundExpressionASTNode(const common::Token &ExpressionSeparator,
                             std::unique_ptr<IASTNode> FirstExpression,
                             std::unique_ptr<IASTNode> ReminingExpression);
 
@@ -89,7 +118,8 @@ public:
 
   CompoundExpressionASTNode &operator=(const CompoundExpressionASTNode &RHS);
 
-  CompoundExpressionASTNode &operator=(CompoundExpressionASTNode &&RHS) noexcept = default;
+  CompoundExpressionASTNode &
+  operator=(CompoundExpressionASTNode &&RHS) noexcept = default;
 
   void acceptASTPass(IASTPass &Pass) override;
 
