@@ -1,14 +1,44 @@
 #include "cowabunga/Lexer/Lexer.h"
 
-#include "cowabunga/Common/Metadata.h"
 #include "cowabunga/Lexer/Token.h"
 
-#include <istream>
-#include <optional>
-#include <string_view>
-#include <vector>
+#include <cassert>
+#include <cctype>
+#include <iostream>
 
 using namespace cb;
+
+namespace {
+
+class LineTokenizer final {
+public:
+  LineTokenizer(std::vector<std::unique_ptr<ITokenizerProxy>> &TokenizersRef,
+                std::string FileName);
+
+  std::pair<std::vector<Token>, bool> tokenize(const std::string &LineArg);
+
+private:
+  void skipWhitespace();
+
+  void findBestToken();
+
+  void removeNonWhitespaceRange();
+
+  void fillBestTokenMetadata();
+
+  void errorOnUnrecognizedToken() const;
+
+  std::vector<std::unique_ptr<ITokenizerProxy>> &Tokenizers;
+  std::shared_ptr<const std::string> File;
+  std::shared_ptr<const std::string> SharedLine;
+  std::string_view Line;
+  Token BestToken;
+  size_t BestTokenLength;
+  size_t LineNumber;
+  size_t Position;
+};
+
+} // namespace
 
 Lexer::Lexer(const Lexer &RHS) {
   Tokenizers.reserve(RHS.Tokenizers.size());
@@ -23,43 +53,109 @@ Lexer &Lexer::operator=(const Lexer &RHS) {
   return *this;
 }
 
-std::optional<std::vector<Token>> Lexer::produceTokens(std::istream &Input) {
+std::vector<Token> Lexer::tokenize(std::istream &Input,
+                                   const std::string &FileName) {
   std::vector<Token> Tokens;
-  std::string Word;
-  std::string_view WordView;
-  size_t Offset = 0;
-  do {
-    if (!WordView.empty()) {
-      WordView.remove_prefix(Offset);
-    }
-    if (WordView.empty()) {
-      Word.clear();
-      Input >> Word;
-      Offset = 0;
-      WordView = std::string_view(Word.c_str());
-    }
-    if (WordView.empty()) {
-      return Tokens;
-    }
-    auto Result = findBestToken(WordView);
-    if (!Result.first) {
-      return std::nullopt;
-    }
-    Tokens.push_back(std::move(Result.first));
-    Offset = Result.second.length();
-    Tokens.back().MetadataStorage.set(Stringified, Result.second);
-  } while (Input);
+  std::string Line;
+  bool Success = true;
+  LineTokenizer Tokenizer(Tokenizers, FileName);
+  while (std::getline(Input, Line)) {
+    auto [NewTokens, LineSuccess] = Tokenizer.tokenize(Line);
+    std::move(NewTokens.begin(), NewTokens.end(), std::back_inserter(Tokens));
+    Success = Success && LineSuccess;
+  }
+  if (!Success) {
+    std::cerr << "Failed to parse " << FileName << std::endl;
+    exit(1);
+  }
   return Tokens;
 }
 
-std::pair<Token, std::string>
-Lexer::findBestToken(std::string_view Word) const {
-  std::pair<Token, std::string> BestResult;
+LineTokenizer::LineTokenizer(
+    std::vector<std::unique_ptr<ITokenizerProxy>> &TokenizersRef,
+    std::string FileName)
+    : Tokenizers(TokenizersRef),
+      File(std::make_shared<const std::string>(std::move(FileName))),
+      LineNumber(0), Position(0) {}
+
+std::pair<std::vector<Token>, bool>
+LineTokenizer::tokenize(const std::string &LineArg) {
+  SharedLine = std::make_shared<const std::string>(LineArg);
+  Line = LineArg;
+  ++LineNumber;
+  Position = 0;
+  bool Success = true;
+  std::vector<Token> Tokens;
+  skipWhitespace();
+  while (Position != LineArg.length()) {
+    findBestToken();
+    if (!BestToken) {
+      errorOnUnrecognizedToken();
+      removeNonWhitespaceRange();
+    } else {
+      Line.remove_prefix(BestTokenLength);
+      fillBestTokenMetadata();
+      Position += BestTokenLength;
+      Tokens.push_back(std::move(BestToken));
+    }
+    skipWhitespace();
+  }
+  return std::make_pair(Tokens, Success);
+}
+
+void LineTokenizer::skipWhitespace() {
+  size_t WhitespacePrefixLength = Line.find_first_not_of(" \t");
+  if (WhitespacePrefixLength != std::string_view::npos) {
+    Line.remove_prefix(WhitespacePrefixLength);
+    Position += WhitespacePrefixLength;
+  } else {
+    Position += Line.length();
+  }
+}
+
+void LineTokenizer::removeNonWhitespaceRange() {
+  size_t NonWhitespaceLength = Line.find_first_of(" \t");
+  if (NonWhitespaceLength == std::string_view::npos) {
+    NonWhitespaceLength = Line.length();
+  }
+  Line.remove_prefix(NonWhitespaceLength);
+  Position += NonWhitespaceLength;
+}
+
+void LineTokenizer::findBestToken() {
+  std::pair<Token, size_t> BestResult;
   for (auto &Tokenizer : Tokenizers) {
-    auto Result = Tokenizer->tokenize(Word);
-    if (Result > BestResult) {
-      BestResult = Result;
+    auto NewResult = Tokenizer->tokenize(Line);
+    if (NewResult > BestResult) {
+      BestResult = NewResult;
     }
   }
-  return BestResult;
+  BestToken = BestResult.first;
+  BestTokenLength = BestResult.second;
+}
+
+void LineTokenizer::errorOnUnrecognizedToken() const {
+  assert(SharedLine && "SharedLine shouldn't be nullptr");
+  assert(Position < SharedLine->length() &&
+         "Position should be less than line's length");
+  std::cerr << *File << ":" << LineNumber << ":" << Position + 1
+            << ": unrecognized lexeme\n";
+  std::cerr << "\t" << *SharedLine << "\n\t";
+  for (size_t I = 0; I < Position; ++I) {
+    std::cerr << " ";
+  }
+  std::cerr << "^";
+  for (auto *It = Line.cbegin(), *ItEnd = Line.cend();
+       It != ItEnd && !std::isspace(*It); ++It) {
+    std::cerr << "~";
+  }
+  std::cerr << "\n";
+}
+
+void LineTokenizer::fillBestTokenMetadata() {
+  BestToken.Line = SharedLine;
+  BestToken.BeginColumnNumber = Position + 1;
+  BestToken.EndColumnNumber = Position + 1 + BestTokenLength;
+  BestToken.LineNumber = LineNumber;
+  BestToken.File = File;
 }

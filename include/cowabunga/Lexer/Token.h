@@ -3,10 +3,6 @@
 
 #include "cowabunga/Common/IComparable.h"
 #include "cowabunga/Common/IPrintable.h"
-#include "cowabunga/Common/Metadata.h"
-
-#include <map>
-#include <string>
 
 namespace cb {
 
@@ -22,6 +18,8 @@ public:
 
   void print(std::ostream &Out) const;
 
+  std::string lexeme() const;
+
   int id() const noexcept;
 
   int priority() const noexcept;
@@ -30,7 +28,11 @@ public:
 
   operator bool() const noexcept;
 
-  Metadata MetadataStorage;
+  std::shared_ptr<const std::string> File;
+  std::shared_ptr<const std::string> Line;
+  size_t LineNumber;
+  size_t BeginColumnNumber;
+  size_t EndColumnNumber;
 
 private:
   int ID;

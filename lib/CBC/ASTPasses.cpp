@@ -1,7 +1,5 @@
 #include "cowabunga/CBC/ASTPasses.h"
 
-#include "cowabunga/Common/Metadata.h"
-
 using namespace cb;
 
 IASTPass::~IASTPass() {}

@@ -4,7 +4,6 @@
 #include "cowabunga/CBC/Definitions.h"
 #include "cowabunga/Common/IClonableMixin.h"
 #include "cowabunga/Common/IPrintable.h"
-#include "cowabunga/Common/Metadata.h"
 
 #include <memory>
 #include <ostream>
@@ -33,7 +32,6 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  Metadata MetadataStorage;
   std::string Name;
 };
 
@@ -46,8 +44,7 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  Metadata MetadataStorage;
-  long long Value;
+  std::string Value;
 };
 
 class BinaryExpressionASTNode final
@@ -72,9 +69,9 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  Metadata MetadataStorage;
   std::unique_ptr<IASTNode> LHS;
   std::unique_ptr<IASTNode> RHS;
+  std::string OperatorLexeme;
   OperatorID OpID;
 };
 
@@ -100,8 +97,9 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  Metadata MetadataStorage;
   std::unique_ptr<IASTNode> Expression;
+  std::string OpenParenthesesLexeme;
+  std::string CloseParenthesesLexeme;
 };
 
 class CompoundExpressionASTNode final
@@ -124,9 +122,9 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  Metadata MetadataStorage;
   std::unique_ptr<IASTNode> First;
   std::unique_ptr<IASTNode> Second;
+  std::string ExpressionSeparatorLexeme;
 };
 
 } // namespace cb

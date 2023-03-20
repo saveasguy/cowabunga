@@ -4,8 +4,6 @@
 #include "cowabunga/Lexer/Token.h"
 #include "cowabunga/Lexer/TokenizerProxy.h"
 
-#include <memory>
-#include <optional>
 #include <vector>
 
 namespace cb {
@@ -30,12 +28,24 @@ public:
     return *this;
   }
 
-  std::optional<std::vector<Token>> produceTokens(std::istream &Input);
+  std::vector<Token> tokenize(std::istream &Input,
+                              const std::string &FileName = "");
 
 private:
-  std::pair<Token, std::string> findBestToken(std::string_view Word) const;
+  std::pair<std::vector<Token>, bool> tokenizeLine(const std::string &Line);
+
+  static size_t skipWhitespace(const std::string &Line, size_t Pos);
+
+  std::pair<Token, size_t> findBestToken(std::string_view Word) const;
+
+  bool errorOnUnrecognizedToken(const std::pair<Token, size_t> &Result,
+                                const std::string &Line,
+                                size_t WordLength) const;
 
   std::vector<std::unique_ptr<ITokenizerProxy>> Tokenizers;
+  std::shared_ptr<const std::string> File;
+  size_t LineNumber;
+  size_t ColumnNumber;
 };
 
 } // namespace cb

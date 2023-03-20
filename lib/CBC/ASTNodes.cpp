@@ -2,10 +2,10 @@
 
 #include "cowabunga/CBC/ASTPasses.h"
 #include "cowabunga/CBC/Definitions.h"
-#include "cowabunga/Common/Metadata.h"
 #include "cowabunga/Lexer/Token.h"
 
 #include <cassert>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -13,9 +13,7 @@ using namespace cb;
 
 IASTNode::~IASTNode() {}
 
-VariableASTNode::VariableASTNode(const Token &Tok)
-    : MetadataStorage(Tok.MetadataStorage),
-      Name(Tok.MetadataStorage.get(Stringified)) {
+VariableASTNode::VariableASTNode(const Token &Tok) : Name(Tok.lexeme()) {
   assert(Tok.id() == Identifier && "Expected identifier token");
 }
 
@@ -26,8 +24,7 @@ void VariableASTNode::print(std::ostream &Out) const {
 }
 
 IntegralNumberASTNode::IntegralNumberASTNode(const Token &Tok)
-    : MetadataStorage(Tok.MetadataStorage),
-      Value(std::stoll(Tok.MetadataStorage.get(Stringified))) {
+    : Value(Tok.lexeme()) {
   assert(Tok.id() == IntegralNumber && "Expected integral number token");
 }
 
@@ -42,8 +39,8 @@ void IntegralNumberASTNode::print(std::ostream &Out) const {
 BinaryExpressionASTNode::BinaryExpressionASTNode(
     const Token &Tok, std::unique_ptr<IASTNode> LHSExpression,
     std::unique_ptr<IASTNode> RHSExpression)
-    : MetadataStorage(Tok.MetadataStorage), LHS(std::move(LHSExpression)),
-      RHS(std::move(RHSExpression)), OpID(static_cast<OperatorID>(Tok.id())) {
+    : LHS(std::move(LHSExpression)), RHS(std::move(RHSExpression)),
+      OperatorLexeme(Tok.lexeme()), OpID(static_cast<OperatorID>(Tok.id())) {
   assert(Tok.id() > BinaryOperatorsRangeBegin &&
          Tok.id() < BinaryOperatorsRangeEnd &&
          "Expected binary expression token");
@@ -51,9 +48,10 @@ BinaryExpressionASTNode::BinaryExpressionASTNode(
 
 BinaryExpressionASTNode::BinaryExpressionASTNode(
     const BinaryExpressionASTNode &RHSBinaryExpression)
-    : MetadataStorage(RHSBinaryExpression.MetadataStorage),
-      LHS(RHSBinaryExpression.LHS->clone()),
-      RHS(RHSBinaryExpression.RHS->clone()) {}
+    : LHS(RHSBinaryExpression.LHS->clone()),
+      RHS(RHSBinaryExpression.RHS->clone()),
+      OperatorLexeme(RHSBinaryExpression.OperatorLexeme),
+      OpID(RHSBinaryExpression.OpID) {}
 
 BinaryExpressionASTNode &BinaryExpressionASTNode::operator=(
     const BinaryExpressionASTNode &RHSBinaryExpression) {
@@ -67,22 +65,21 @@ void BinaryExpressionASTNode::acceptASTPass(IASTPass &Pass) {
 }
 
 void BinaryExpressionASTNode::print(std::ostream &Out) const {
-  Out << "Binary Expression '" << MetadataStorage.get(Stringified) << "'";
+  Out << "Binary Expression '" << OperatorLexeme << "'";
 }
 
 ParenthesizedExpressionASTNode::ParenthesizedExpressionASTNode(
     const Token &OpenParentheses, std::unique_ptr<IASTNode> InternalExpression,
     const Token &CloseParentheses)
-    : Expression(std::move(InternalExpression)) {
-  MetadataStorage.set(Stringified,
-                      OpenParentheses.MetadataStorage.get(Stringified) +
-                          CloseParentheses.MetadataStorage.get(Stringified));
-}
+    : Expression(std::move(InternalExpression)),
+      OpenParenthesesLexeme(OpenParentheses.lexeme()),
+      CloseParenthesesLexeme(CloseParentheses.lexeme()) {}
 
 ParenthesizedExpressionASTNode::ParenthesizedExpressionASTNode(
     const ParenthesizedExpressionASTNode &RHS)
-    : MetadataStorage(RHS.MetadataStorage),
-      Expression(RHS.Expression->clone()) {}
+    : Expression(RHS.Expression->clone()),
+      OpenParenthesesLexeme(RHS.OpenParenthesesLexeme),
+      CloseParenthesesLexeme(RHS.CloseParenthesesLexeme) {}
 
 ParenthesizedExpressionASTNode &ParenthesizedExpressionASTNode::operator=(
     const ParenthesizedExpressionASTNode &RHS) {
@@ -96,23 +93,23 @@ void ParenthesizedExpressionASTNode::acceptASTPass(IASTPass &Pass) {
 }
 
 void ParenthesizedExpressionASTNode::print(std::ostream &Out) const {
-  Out << "Parenthesized Expression '" << MetadataStorage.get(Stringified)
-      << "'";
+  Out << "Parenthesized Expression '" << OpenParenthesesLexeme << "..."
+      << CloseParenthesesLexeme << "'";
 }
 
 CompoundExpressionASTNode::CompoundExpressionASTNode(
     const Token &Tok, std::unique_ptr<IASTNode> FirstExpression,
     std::unique_ptr<IASTNode> SecondExpression)
-    : MetadataStorage(Tok.MetadataStorage), First(std::move(FirstExpression)),
-      Second(std::move(SecondExpression)) {
+    : First(std::move(FirstExpression)), Second(std::move(SecondExpression)),
+      ExpressionSeparatorLexeme(Tok.lexeme()) {
   assert(Tok.id() == ExpressionSeparator &&
          "Expected expression separator token");
 }
 
 CompoundExpressionASTNode::CompoundExpressionASTNode(
     const CompoundExpressionASTNode &RHS)
-    : MetadataStorage(RHS.MetadataStorage), First(RHS.First->clone()),
-      Second(RHS.Second->clone()) {}
+    : First(RHS.First->clone()), Second(RHS.Second->clone()),
+      ExpressionSeparatorLexeme(RHS.ExpressionSeparatorLexeme) {}
 
 CompoundExpressionASTNode &
 CompoundExpressionASTNode::operator=(const CompoundExpressionASTNode &RHS) {
@@ -126,5 +123,5 @@ void CompoundExpressionASTNode::acceptASTPass(IASTPass &Pass) {
 }
 
 void CompoundExpressionASTNode::print(std::ostream &Out) const {
-  Out << "Expression Sequence '" << MetadataStorage.get(Stringified) << "'";
+  Out << "Expression Sequence '" << ExpressionSeparatorLexeme << "'";
 }
