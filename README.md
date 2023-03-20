@@ -25,9 +25,20 @@ cmake --build build
 ```
 
 ## Usage
-To play with compiler, *main.cb* file is provided.   
-To run compiler on *main.cb*, execute following command:
 ```
-# Go to project root directory
-./build/cbc/cbc main.cb
+# Create new file in the project's root directory
+echo "a * (c + d) + 32; (3); (a+(c)); (a * ((a) + (c)));" > main.cb
+# Run compiler on the created file:
+./build/tools/cbc/cbc main.cb
+```
+### Examples
+Few examples are provided in this repository. They are placed in *examples/* directory.
+Exaples are built by default.
+```
+# To run example PrintAST, run the following command:
+./build/examples/PrintAST/PrintAST
+```
+```
+# To run example PrintTokens, run the following command:
+./build/examples/PrintTokens/PrintTokens
 ```
