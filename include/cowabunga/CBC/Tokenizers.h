@@ -11,19 +11,19 @@ namespace cb {
 
 class IdentifierTokenizer : public ITokenizer {
 public:
-  std::pair<Token, std::string> tokenize(std::string_view Word) override;
+  std::pair<Token, size_t> tokenize(std::string_view Word) override;
 };
 
 class IntegralNumberTokenizer : public ITokenizer {
 public:
-  std::pair<Token, std::string> tokenize(std::string_view Word) override;
+  std::pair<Token, size_t> tokenize(std::string_view Word) override;
 };
 
 class KeywordTokenizer : public ITokenizer {
 public:
   KeywordTokenizer(TokenID TokId, std::string Keyword);
 
-  std::pair<Token, std::string> tokenize(std::string_view Word) override;
+  std::pair<Token, size_t> tokenize(std::string_view Word) override;
 
 private:
   TokenID ID;

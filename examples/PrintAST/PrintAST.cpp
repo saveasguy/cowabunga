@@ -17,13 +17,9 @@ int main(int argc, char **argv) {
       .addTokenizer(KeywordTokenizer(Multiplication, "*"));
   std::stringstream Script;
   Script << "123 + 43 * 54 + 32 * 34";
-  auto Tokens = Lex.produceTokens(Script);
-  if (!Tokens) {
-    std::cerr << "Failed to parse input file." << std::endl;
-    return 1;
-  }
+  auto Tokens = Lex.tokenize(Script, "stringstream");
   BinaryExpressionParser Parser;
-  auto AST = Parser.parse(Tokens->cbegin(), Tokens->cend());
+  auto AST = Parser.parse(Tokens.cbegin(), Tokens.cend());
   if (!AST) {
     std::cerr << "Failed to build AST." << std::endl;
     return 2;

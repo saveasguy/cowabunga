@@ -10,7 +10,7 @@ class Token;
 
 class ITokenizer {
 public:
-  virtual std::pair<Token, std::string> tokenize(std::string_view Word) = 0;
+  virtual std::pair<Token, size_t> tokenize(std::string_view Word) = 0;
 
   virtual ~ITokenizer();
 };

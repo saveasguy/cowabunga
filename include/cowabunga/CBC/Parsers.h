@@ -4,7 +4,6 @@
 #include "cowabunga/CBC/ASTNodes.h"
 #include "cowabunga/CBC/Definitions.h"
 #include "cowabunga/CBC/Tokenizers.h"
-#include "cowabunga/Common/Metadata.h"
 #include "cowabunga/Lexer/Token.h"
 #include "cowabunga/Parser/IParser.h"
 #include "cowabunga/Parser/Matchers.h"

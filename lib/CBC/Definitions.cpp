@@ -18,7 +18,7 @@ cb::operatorAssociativityTable() {
   static std::map<OperatorID, OperatorAssociativity>
       OperatorAssociativityTable = {
           {MultiplicationOp, Left}, {AdditionOp, Left},
-          {SubstractionOp, Left},   {ShiftLeftOp, Right},
-          {ShiftRightOp, Right},    {AssignmentOp, Left}};
+          {SubstractionOp, Left},   {ShiftLeftOp, Left},
+          {ShiftRightOp, Left},    {AssignmentOp, Right}};
   return OperatorAssociativityTable;
 }

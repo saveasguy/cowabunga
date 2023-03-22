@@ -14,13 +14,9 @@ int main(int argc, char **argv) {
       .addTokenizer(KeywordTokenizer(Substraction, "-"))
       .addTokenizer(KeywordTokenizer(Multiplication, "*"));
   std::stringstream Script;
-  Script << "123 + 43 * 54 + 32 * 34";
-  auto Tokens = Lex.produceTokens(Script);
-  if (!Tokens) {
-    std::cerr << "Failed to parse input file." << std::endl;
-    return 1;
-  }
-  for (const auto &Tok : *Tokens) {
+  Script << "f123 + 43 * 54 + 32 * 34";
+  auto Tokens = Lex.tokenize(Script, "stringstream");
+  for (const auto &Tok : Tokens) {
     std::cout << Tok << std::endl;
   }
   return 0;

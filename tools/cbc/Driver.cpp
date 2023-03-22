@@ -10,8 +10,8 @@
 using namespace cb;
 
 int main(int argc, char **argv) {
-  Lexer Lexer{};
-  Lexer.addTokenizer(IntegralNumberTokenizer())
+  Lexer Lex;
+  Lex.addTokenizer(IntegralNumberTokenizer())
       .addTokenizer(IdentifierTokenizer())
       .addTokenizer(KeywordTokenizer(ExpressionSeparator, ";"))
       .addTokenizer(KeywordTokenizer(Assignment, "="))
@@ -34,23 +34,19 @@ int main(int argc, char **argv) {
     std::cerr << "File not found." << std::endl;
     return 2;
   }
-  auto Tokens = Lexer.produceTokens(Script);
-  if (!Tokens) {
-    std::cerr << "Failed to parse input file." << std::endl;
-    return 3;
-  }
-  for (auto &Token : *Tokens) {
+  auto Tokens = Lex.tokenize(Script, argv[1]);
+  for (auto &Token : Tokens) {
     std::cout << Token << std::endl;
   }
   CompoundExpressionParser Parser;
-  auto It = Parser.match(Tokens->cbegin(), Tokens->cend());
-  bool Ok = (It == Tokens->cend());
+  auto It = Parser.match(Tokens.cbegin(), Tokens.cend());
+  bool Ok = (It == Tokens.cend());
   std::cout << Ok << std::endl;
   if (!Ok) {
     std::cerr << "Failed to parse input file." << std::endl;
     return 4;
   }
-  auto AST = Parser.parse(Tokens->cbegin(), Tokens->cend());
+  auto AST = Parser.parse(Tokens.cbegin(), Tokens.cend());
   if (!AST) {
     std::cerr << "Failed to build AST." << std::endl;
     return 4;

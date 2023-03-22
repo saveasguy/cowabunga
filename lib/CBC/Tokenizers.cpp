@@ -1,15 +1,13 @@
 #include "cowabunga/CBC/Tokenizers.h"
 
 #include "cowabunga/CBC/Definitions.h"
-#include "cowabunga/Common/Metadata.h"
 
 #include <string_view>
 #include <utility>
 
 using namespace cb;
 
-std::pair<Token, std::string>
-IdentifierTokenizer::tokenize(std::string_view Word) {
+std::pair<Token, size_t> IdentifierTokenizer::tokenize(std::string_view Word) {
   auto *It = Word.cbegin();
   bool Match = It != Word.cend() && (std::isalpha(*It) || *It == '_');
   while (Match && It != Word.cend()) {
@@ -19,13 +17,13 @@ IdentifierTokenizer::tokenize(std::string_view Word) {
     }
   }
   if (It == Word.cbegin()) {
-    return std::make_pair(Token(), "");
+    return std::make_pair(Token(), 0);
   }
   auto Result = Token(TokenID::Identifier, TokenPriority::Normal);
-  return std::make_pair(Result, std::string(Word.cbegin(), It));
+  return std::make_pair(Result, It - Word.cbegin());
 }
 
-std::pair<Token, std::string>
+std::pair<Token, size_t>
 IntegralNumberTokenizer::tokenize(std::string_view Word) {
   bool Match = true;
   auto *It = Word.cbegin();
@@ -36,20 +34,19 @@ IntegralNumberTokenizer::tokenize(std::string_view Word) {
     }
   }
   if (It == Word.cbegin()) {
-    return std::make_pair(Token(), "");
+    return std::make_pair(Token(), 0);
   }
   auto Result = Token(TokenID::IntegralNumber, TokenPriority::Normal);
-  return std::make_pair(Result, std::string(Word.cbegin(), It));
+  return std::make_pair(Result, It - Word.cbegin());
 }
 
 KeywordTokenizer::KeywordTokenizer(TokenID TokID, std::string Keyword)
     : ID(TokID), KeywordString(std::move(Keyword)) {}
 
-std::pair<Token, std::string>
-KeywordTokenizer::tokenize(std::string_view Word) {
+std::pair<Token, size_t> KeywordTokenizer::tokenize(std::string_view Word) {
   if (Word.find(KeywordString)) {
-    return std::make_pair(Token(), "");
+    return std::make_pair(Token(), 0);
   }
   auto Result = Token(ID, TokenPriority::High);
-  return std::make_pair(Result, KeywordString);
+  return std::make_pair(Result, KeywordString.length());
 }
