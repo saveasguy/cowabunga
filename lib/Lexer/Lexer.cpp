@@ -145,7 +145,7 @@ void LineTokenizer::errorOnUnrecognizedToken() const {
     std::cerr << " ";
   }
   std::cerr << "^";
-  for (auto *It = Line.cbegin(), *ItEnd = Line.cend();
+  for (auto *It = Line.cbegin() + 1, *ItEnd = Line.cend();
        It != ItEnd && !std::isspace(*It); ++It) {
     std::cerr << "~";
   }
