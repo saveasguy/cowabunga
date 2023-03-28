@@ -25,8 +25,16 @@ class TokenizerProxy final
 public:
   TokenizerProxy(Tokenizer Impl) : TokenizerImpl(Impl) {}
 
-  std::pair<Token, size_t> tokenize(std::string_view Word) override {
+  std::pair<std::optional<Token>, size_t> tokenize(std::string_view Word) override {
     return TokenizerImpl.tokenize(Word);
+  }
+
+  int getTokenID() const override {
+    return TokenizerImpl.getTokenID();
+  }
+
+  std::string getLexemeString() const override {
+    return TokenizerImpl.getLexemeString();
   }
 
 private:

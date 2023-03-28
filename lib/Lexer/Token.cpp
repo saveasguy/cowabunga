@@ -5,35 +5,29 @@
 
 using namespace cb;
 
-Token::Token()
-    : Priority(std::numeric_limits<int>::min()), Initialized(false) {}
+Token::Token(int TokenID) : ID(TokenID) {}
 
-Token::Token(int TokenID, int TokenPriority)
-    : ID(TokenID), Priority(TokenPriority), Initialized(true) {}
-
-bool Token::equals(const Token &RHS) const noexcept {
-  return Initialized == RHS.Initialized && ID == RHS.ID &&
-         Priority == RHS.Priority;
-}
-
-bool Token::less(const Token &RHS) const noexcept {
-  return !Initialized && RHS.Initialized || Priority < RHS.Priority;
-}
+int Token::compare(const Token &RHS) const { return ID - RHS.ID; }
 
 void Token::print(std::ostream &Out) const {
-  Out << "'" << lexeme() << "' <line: " << LineNumber << ", col: " << BeginColumnNumber
-      << ":" << EndColumnNumber - 1 << ">";
+  Out << "'" << getLexeme() << "' <line: " << LineNumber
+      << ", col: " << BeginColumnNumber << ":" << EndColumnNumber - 1 << ">";
 }
 
-std::string Token::lexeme() const {
+std::string Token::getFile() const {
+  assert(File && "Token's File member is nullptr");
+  return *File;
+}
+
+std::string Token::getLine() const {
   assert(Line && "Token's Line member is nullptr");
-  return Line->substr(BeginColumnNumber - 1, EndColumnNumber - BeginColumnNumber);
+  return *Line;
 }
 
-int Token::id() const noexcept { return ID; }
+std::string Token::getLexeme() const {
+  assert(Line && "Token's Line member is nullptr");
+  return Line->substr(BeginColumnNumber - 1,
+                      EndColumnNumber - BeginColumnNumber);
+}
 
-int Token::priority() const noexcept { return Priority; }
-
-bool Token::initialized() const noexcept { return Initialized; }
-
-Token::operator bool() const noexcept { return Initialized; }
+int Token::getID() const noexcept { return ID; }

@@ -1,4 +1,3 @@
-#include "cowabunga/CBC/Definitions.h"
 #include "cowabunga/CBC/Tokenizers.h"
 #include "cowabunga/Lexer/Lexer.h"
 
@@ -9,12 +8,12 @@ using namespace cb;
 
 int main(int argc, char **argv) {
   Lexer Lex;
-  Lex.addTokenizer(IntegralNumberTokenizer())
-      .addTokenizer(KeywordTokenizer(Addition, "+"))
-      .addTokenizer(KeywordTokenizer(Substraction, "-"))
-      .addTokenizer(KeywordTokenizer(Multiplication, "*"));
+  Lex.addTokenizer(IdentifierTokenizer())
+      .addTokenizer(IntegralNumberTokenizer())
+      .addTokenizer(KeywordTokenizer(TID_ExpressionSeparator, ";"))
+      .addTokenizer(KeywordTokenizer(TID_Assignment, "="));
   std::stringstream Script;
-  Script << "123 + 43 * 54 + 32 * 34";
+  Script << "a = 13; b = 4;";
   auto Tokens = Lex.tokenize(Script, "stringstream");
   for (const auto &Tok : Tokens) {
     std::cout << Tok << std::endl;

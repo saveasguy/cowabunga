@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cctype>
 #include <iostream>
+#include <optional>
 
 using namespace cb;
 
@@ -15,7 +16,11 @@ public:
   LineTokenizer(std::vector<std::unique_ptr<ITokenizerProxy>> &TokenizersRef,
                 std::string FileName);
 
-  std::pair<std::vector<Token>, bool> tokenize(const std::string &LineArg);
+  std::vector<Token> tokenize(const std::string &LineArg);
+
+  int getError() const noexcept;
+
+  operator bool() const noexcept;
 
 private:
   void skipWhitespace();
@@ -26,16 +31,17 @@ private:
 
   void fillBestTokenMetadata();
 
-  void errorOnUnrecognizedToken() const;
+  void raiseErrorOnUnrecognizedToken();
 
   std::vector<std::unique_ptr<ITokenizerProxy>> &Tokenizers;
   std::shared_ptr<const std::string> File;
   std::shared_ptr<const std::string> SharedLine;
   std::string_view Line;
-  Token BestToken;
+  std::optional<Token> BestToken;
   size_t BestTokenLength;
   size_t LineNumber;
   size_t Position;
+  int Error;
 };
 
 } // namespace
@@ -57,18 +63,20 @@ std::vector<Token> Lexer::tokenize(std::istream &Input,
                                    const std::string &FileName) {
   std::vector<Token> Tokens;
   std::string Line;
-  bool Success = true;
   LineTokenizer Tokenizer(Tokenizers, FileName);
   while (std::getline(Input, Line)) {
-    auto [NewTokens, LineSuccess] = Tokenizer.tokenize(Line);
+    auto NewTokens = Tokenizer.tokenize(Line);
     std::move(NewTokens.begin(), NewTokens.end(), std::back_inserter(Tokens));
-    Success = Success && LineSuccess;
   }
-  if (!Success) {
+  if (!Tokenizer) {
     std::cerr << "Failed to parse " << FileName << std::endl;
     exit(1);
   }
   return Tokens;
+}
+
+std::string Lexer::getTokenLexeme(int ID) const {
+  return LexemeStringMapping.at(ID);
 }
 
 LineTokenizer::LineTokenizer(
@@ -76,31 +84,29 @@ LineTokenizer::LineTokenizer(
     std::string FileName)
     : Tokenizers(TokenizersRef),
       File(std::make_shared<const std::string>(std::move(FileName))),
-      LineNumber(0), Position(0) {}
+      LineNumber(0), Position(0), Error(0) {}
 
-std::pair<std::vector<Token>, bool>
-LineTokenizer::tokenize(const std::string &LineArg) {
+std::vector<Token> LineTokenizer::tokenize(const std::string &LineArg) {
   SharedLine = std::make_shared<const std::string>(LineArg);
   Line = LineArg;
   ++LineNumber;
   Position = 0;
-  bool Success = true;
   std::vector<Token> Tokens;
   skipWhitespace();
   while (Position != LineArg.length()) {
     findBestToken();
     if (!BestToken) {
-      errorOnUnrecognizedToken();
+      raiseErrorOnUnrecognizedToken();
       removeNonWhitespaceRange();
     } else {
       Line.remove_prefix(BestTokenLength);
       fillBestTokenMetadata();
       Position += BestTokenLength;
-      Tokens.push_back(std::move(BestToken));
+      Tokens.push_back(std::move(*BestToken));
     }
     skipWhitespace();
   }
-  return std::make_pair(Tokens, Success);
+  return Tokens;
 }
 
 void LineTokenizer::skipWhitespace() {
@@ -123,18 +129,20 @@ void LineTokenizer::removeNonWhitespaceRange() {
 }
 
 void LineTokenizer::findBestToken() {
-  std::pair<Token, size_t> BestResult;
+  std::optional<Token> BestFoundToken;
+  size_t BestFoundTokenLength = 0;
   for (auto &Tokenizer : Tokenizers) {
-    auto NewResult = Tokenizer->tokenize(Line);
-    if (NewResult > BestResult) {
-      BestResult = NewResult;
+    auto [FoundToken, TokenLength] = Tokenizer->tokenize(Line);
+    if (BestFoundToken < FoundToken) {
+      BestFoundToken = FoundToken;
+      BestFoundTokenLength = TokenLength;
     }
   }
-  BestToken = BestResult.first;
-  BestTokenLength = BestResult.second;
+  BestToken = BestFoundToken;
+  BestTokenLength = BestFoundTokenLength;
 }
 
-void LineTokenizer::errorOnUnrecognizedToken() const {
+void LineTokenizer::raiseErrorOnUnrecognizedToken() {
   assert(SharedLine && "SharedLine shouldn't be nullptr");
   assert(Position < SharedLine->length() &&
          "Position should be less than line's length");
@@ -150,12 +158,20 @@ void LineTokenizer::errorOnUnrecognizedToken() const {
     std::cerr << "~";
   }
   std::cerr << "\n";
+  Error = 1;
 }
 
 void LineTokenizer::fillBestTokenMetadata() {
-  BestToken.Line = SharedLine;
-  BestToken.BeginColumnNumber = Position + 1;
-  BestToken.EndColumnNumber = Position + 1 + BestTokenLength;
-  BestToken.LineNumber = LineNumber;
-  BestToken.File = File;
+  assert(
+      BestToken.has_value() &&
+      "LineTokenizer's BestToken member is nullopt, but has to contain value");
+  BestToken->Line = SharedLine;
+  BestToken->BeginColumnNumber = Position + 1;
+  BestToken->EndColumnNumber = Position + 1 + BestTokenLength;
+  BestToken->LineNumber = LineNumber;
+  BestToken->File = File;
 }
+
+int LineTokenizer::getError() const noexcept { return Error; }
+
+LineTokenizer::operator bool() const noexcept { return Error == 0; }

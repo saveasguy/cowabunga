@@ -1,3 +1,6 @@
 add_library(Parser
-  Matchers.cpp
-  )
+  CFGParser.cpp
+  ICFGRule.cpp
+  Symbol.cpp
+)
+target_link_libraries(Parser)

@@ -4,6 +4,7 @@
 #include "cowabunga/Lexer/Token.h"
 #include "cowabunga/Lexer/TokenizerProxy.h"
 
+#include <unordered_map>
 #include <vector>
 
 namespace cb {
@@ -22,30 +23,21 @@ public:
 
   Lexer &operator=(Lexer &&RHS) noexcept = default;
 
-  template <class Tokenizer> Lexer &addTokenizer(Tokenizer TokenizerImpl) {
+  template <class TTokenizer> Lexer &addTokenizer(TTokenizer &&TokenizerImpl) {
+    LexemeStringMapping[TokenizerImpl.getTokenID()] = TokenizerImpl.getLexemeString();
     Tokenizers.push_back(
-        std::make_unique<TokenizerProxy<Tokenizer>>(std::move(TokenizerImpl)));
+        std::make_unique<TokenizerProxy<TTokenizer>>(std::forward<TTokenizer>(TokenizerImpl)));
     return *this;
   }
 
   std::vector<Token> tokenize(std::istream &Input,
                               const std::string &FileName = "");
 
+  std::string getTokenLexeme(int ID) const;
+
 private:
-  std::pair<std::vector<Token>, bool> tokenizeLine(const std::string &Line);
-
-  static size_t skipWhitespace(const std::string &Line, size_t Pos);
-
-  std::pair<Token, size_t> findBestToken(std::string_view Word) const;
-
-  bool errorOnUnrecognizedToken(const std::pair<Token, size_t> &Result,
-                                const std::string &Line,
-                                size_t WordLength) const;
-
+  std::unordered_map<int, std::string> LexemeStringMapping;
   std::vector<std::unique_ptr<ITokenizerProxy>> Tokenizers;
-  std::shared_ptr<const std::string> File;
-  size_t LineNumber;
-  size_t ColumnNumber;
 };
 
 } // namespace cb

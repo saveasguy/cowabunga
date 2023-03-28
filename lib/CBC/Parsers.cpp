@@ -1,185 +1,275 @@
 #include "cowabunga/CBC/Parsers.h"
+#include "cowabunga/CBC/Tokenizers.h"
+#include "cowabunga/Lexer/Lexer.h"
+#include "cowabunga/Parser/CFGParserError.h"
+#include "cowabunga/Parser/Symbol.h"
+
+#include <iostream>
 
 using namespace cb;
 
-std::unique_ptr<IASTNode> VariableParser::parse(TokenIterator ItBegin,
-                                                TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  return std::make_unique<VariableASTNode>(*ItBegin);
-}
+namespace {
 
-std::unique_ptr<IASTNode> IntegralNumberParser::parse(TokenIterator ItBegin,
-                                                      TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
+void printError(CFGParserError Error, const Lexer &Lex) {
+  auto LastToken = Error.ItFoundToken;
+  auto ColumnNumber = LastToken->BeginColumnNumber;
+  if (Error.EOFFound) {
+    ColumnNumber = LastToken->EndColumnNumber;
   }
-  return std::make_unique<IntegralNumberASTNode>(*ItBegin);
-}
-
-std::unique_ptr<IASTNode> PrimaryExpressionParser::parse(TokenIterator ItBegin,
-                                                         TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  std::unique_ptr<IASTNode> AST;
-  callbackOnMatched(
-      ItBegin, ItMatchedEnd,
-      [&AST](IParser<std::unique_ptr<IASTNode>> &Parser, TokenIterator ItBegin,
-             TokenIterator ItEnd) { AST = Parser.parse(ItBegin, ItEnd); });
-  return AST;
-}
-
-std::unique_ptr<IASTNode> GeneralExpressionParser::parse(TokenIterator ItBegin,
-                                                         TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  std::unique_ptr<IASTNode> AST;
-  callbackOnMatched(
-      ItBegin, ItMatchedEnd,
-      [&AST](IParser<std::unique_ptr<IASTNode>> &Parser, TokenIterator ItBegin,
-             TokenIterator ItEnd) { AST = Parser.parse(ItBegin, ItEnd); });
-  return AST;
-}
-
-std::unique_ptr<IASTNode> BinaryExpressionParser::parse(TokenIterator ItBegin,
-                                                        TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  return buildAST(ItBegin, ItMatchedEnd);
-}
-
-std::unique_ptr<IASTNode>
-BinaryExpressionParser::buildAST(TokenIterator ItMatchedBegin,
-                                 TokenIterator ItMatchedEnd) {
-  auto BinaryOperatorToken =
-      getLowestPrecedenceBinaryOperatorToken(ItMatchedBegin, ItMatchedEnd);
-  if (BinaryOperatorToken == ItMatchedEnd) {
-    GeneralExpressionParser Parser;
-    return Parser.parse(ItMatchedBegin, ItMatchedEnd);
-  }
-  auto LHS = buildAST(ItMatchedBegin, BinaryOperatorToken);
-  auto RHS = buildAST(BinaryOperatorToken + 1, ItMatchedEnd);
-  if (!LHS || !RHS) {
-    return nullptr;
-  }
-  return std::make_unique<BinaryExpressionASTNode>(
-      *BinaryOperatorToken, std::move(LHS), std::move(RHS));
-}
-
-TokenIterator BinaryExpressionParser::getLowestPrecedenceBinaryOperatorToken(
-    TokenIterator ItMatchedBegin, TokenIterator ItMatchedEnd) {
-  auto &OperatorPrecedenceTable = operatorPrecedenceTable();
-  auto &OperatorAssociativityTable = operatorAssociativityTable();
-  int LowestPrecedence = std::numeric_limits<int>::max();
-  OperatorAssociativity LowestPrecedenceTokenAssociativity = Left;
-  TokenIterator LowestPrecedenceToken = ItMatchedEnd;
-  int ParenthesesDepth = 0;
-  for (auto It = ItMatchedBegin; It != ItMatchedEnd; ++It) {
-    if (It->id() == OpenParantheses) {
-      ++ParenthesesDepth;
-    } else if (It->id() == CloseParantheses) {
-      --ParenthesesDepth;
+  std::cerr << LastToken->getFile() << ":" << LastToken->LineNumber << ":"
+            << ColumnNumber << ": unexpected token\n";
+  if (Error.EOFFound) {
+    std::cerr << "\t";
+    if (Error.ExpectedSymbol.isTerminal()) {
+      std::cerr << "expected "
+                << Lex.getTokenLexeme(
+                       static_cast<TokenID>(Error.ExpectedSymbol.getID()))
+                << ", ";
     }
-    if (ParenthesesDepth || !isBinaryOperator(*It)) {
-      continue;
+    std::cerr << "found EOF\n";
+    exit(2);
+  }
+  if (Error.EOFExpected) {
+    std::cerr << "\t" << Error.ItFoundToken->getLine() << "\n\t";
+    for (size_t I = 0; I < Error.ItFoundToken->BeginColumnNumber - 1; ++I) {
+      std::cerr << " ";
     }
-    auto TokOperatorID = static_cast<OperatorID>(It->id());
-    int Precedence = OperatorPrecedenceTable.at(TokOperatorID);
-    auto Associativity = OperatorAssociativityTable.at(TokOperatorID);
-    if (!isLowerPrecedence(Precedence, LowestPrecedence, Associativity)) {
-      continue;
-    }
-    LowestPrecedence = Precedence;
-    LowestPrecedenceTokenAssociativity = Associativity;
-    LowestPrecedenceToken = It;
+    std::cerr << "^\n";
+    std::cerr << "expected EOF, found " << Error.ItFoundToken->getLexeme()
+              << "\n";
+    exit(2);
   }
-  return LowestPrecedenceToken;
+  std::cerr << "\t" << Error.ItFoundToken->getLine() << "\n\t";
+  for (size_t I = 0; I < Error.ItFoundToken->BeginColumnNumber - 1; ++I) {
+    std::cerr << " ";
+  }
+  std::cerr << "^\n";
+  std::cerr << "expected "
+            << Lex.getTokenLexeme(
+                   static_cast<TokenID>(Error.ExpectedSymbol.getID()))
+            << ", found " << Error.ItFoundToken->getLexeme() << "\n";
+  exit(2);
 }
 
-bool BinaryExpressionParser::isBinaryOperator(const Token &Tok) {
-  return Tok.id() > BinaryOperatorsRangeBegin &&
-         Tok.id() < BinaryOperatorsRangeEnd;
+} // namespace
+
+ParamListToParamList::ParamListToParamList(const Lexer &LexImpl,
+                                           ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void ParamListToParamList::parse(TokenIterator ItToken) {
+  Builder->createParameter();
 }
 
-bool BinaryExpressionParser::isLowerPrecedence(
-    int Precedence, int ComparedToPrecedence,
-    OperatorAssociativity Associativity) {
-  if (Associativity == Left) {
-    return Precedence < ComparedToPrecedence;
-  }
-  return Precedence <= ComparedToPrecedence;
+void ParamListToParamList::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
 }
 
-std::unique_ptr<IASTNode>
-ParenthesizedExpressionParser::parse(TokenIterator ItBegin,
-                                     TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  assert(ItBegin->id() == OpenParantheses && "Open parentheses expected");
-  assert((ItMatchedEnd - 1)->id() == CloseParantheses &&
-         "Close parentheses expected");
-  GeneralExpressionParser InternalExpressionParser;
-  std::unique_ptr<IASTNode> InternalExpression =
-      InternalExpressionParser.parse(ItBegin + 1, ItMatchedEnd - 1);
-  return std::make_unique<ParenthesizedExpressionASTNode>(
-      *ItBegin, std::move(InternalExpression), *(ItMatchedEnd - 1));
+Symbol ParamListToParamList::getLHSNonTerminal() const {
+  return nonTerminal(NTID_ParamList);
 }
 
-std::unique_ptr<IASTNode> ExpressionParser::parse(TokenIterator ItBegin,
-                                                  TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  GeneralExpressionParser Parser;
-  return Parser.parse(ItBegin, ItEnd);
+std::vector<Symbol> ParamListToParamList::getProducts() const {
+  return {nonTerminal(NTID_RValue), terminal(TID_ArgumentSeparator),
+          nonTerminal(NTID_ParamList)};
 }
 
-std::unique_ptr<IASTNode> CompoundExpressionHelper::parse(TokenIterator ItBegin,
-                                                          TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  std::array<std::unique_ptr<IASTNode>, 2> Expressions;
-  size_t Idx = 0;
-  callbackOnMatched(
-      ItBegin, ItMatchedEnd,
-      [&Expressions, &Idx](IParser<std::unique_ptr<IASTNode>> &Parser,
-                           TokenIterator ItBegin, TokenIterator ItEnd) {
-        Expressions[Idx] = Parser.parse(ItBegin, ItEnd);
-        ++Idx;
-      });
-  assert(Expressions[0] && Expressions[1] && "Subsuquent expressions expected");
-  ExpressionParser BasicExprParser;
-  auto ExpressionSeparatorToken =
-      BasicExprParser.match(ItBegin, ItMatchedEnd) - 1;
-  return std::make_unique<CompoundExpressionASTNode>(*ExpressionSeparatorToken,
-                                                     std::move(Expressions[0]),
-                                                     std::move(Expressions[1]));
+ParamListToParam::ParamListToParam(const Lexer &LexImpl,
+                                   ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void ParamListToParam::parse(TokenIterator ItToken) {
+  Builder->createParameterList();
+  Builder->createParameter();
 }
 
-std::unique_ptr<IASTNode> CompoundExpressionParser::parse(TokenIterator ItBegin,
-                                                          TokenIterator ItEnd) {
-  auto ItMatchedEnd = match(ItBegin, ItEnd);
-  if (ItMatchedEnd == ItBegin) {
-    return nullptr;
-  }
-  std::unique_ptr<IASTNode> AST;
-  callbackOnMatched(
-      ItBegin, ItMatchedEnd,
-      [&AST](IParser<std::unique_ptr<IASTNode>> &Parser, TokenIterator ItBegin,
-             TokenIterator ItEnd) { AST = Parser.parse(ItBegin, ItEnd); });
-  return AST;
+void ParamListToParam::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol ParamListToParam::getLHSNonTerminal() const {
+  return nonTerminal(NTID_ParamList);
+}
+
+std::vector<Symbol> ParamListToParam::getProducts() const {
+  return {nonTerminal(NTID_RValue)};
+}
+
+TopLevelExpressionToCompoundExpression::TopLevelExpressionToCompoundExpression(
+    const Lexer &LexImpl, ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void TopLevelExpressionToCompoundExpression::parse(TokenIterator ItToken) {
+  Builder->createCompoundExpression(
+      Lex->getTokenLexeme(TID_ExpressionSeparator));
+}
+
+void TopLevelExpressionToCompoundExpression::produceError(
+    CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol TopLevelExpressionToCompoundExpression::getLHSNonTerminal() const {
+  return nonTerminal(NTID_TopLevelExpression);
+}
+
+std::vector<Symbol>
+TopLevelExpressionToCompoundExpression::getProducts() const {
+  return {nonTerminal(NTID_CompoundExpression)};
+}
+
+CompoundExpressionToExpressionSequence::CompoundExpressionToExpressionSequence(
+    const Lexer &LexImpl, ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void CompoundExpressionToExpressionSequence::parse(TokenIterator ItToken) {}
+
+void CompoundExpressionToExpressionSequence::produceError(
+    CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol CompoundExpressionToExpressionSequence::getLHSNonTerminal() const {
+  return nonTerminal(NTID_CompoundExpression);
+}
+
+std::vector<Symbol>
+CompoundExpressionToExpressionSequence::getProducts() const {
+  return {nonTerminal(NTID_Expression), terminal(TID_ExpressionSeparator),
+          nonTerminal(NTID_CompoundExpression)};
+}
+
+CompoundExpressionToSingleExpression::CompoundExpressionToSingleExpression(
+    const Lexer &LexImpl, ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void CompoundExpressionToSingleExpression::parse(TokenIterator ItToken) {}
+
+void CompoundExpressionToSingleExpression::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol CompoundExpressionToSingleExpression::getLHSNonTerminal() const {
+  return nonTerminal(NTID_CompoundExpression);
+}
+
+std::vector<Symbol> CompoundExpressionToSingleExpression::getProducts() const {
+  return {nonTerminal(NTID_Expression), terminal(TID_ExpressionSeparator)};
+}
+
+ExpressionToAssignment::ExpressionToAssignment(const Lexer &LexImpl,
+                                               ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void ExpressionToAssignment::parse(TokenIterator ItToken) {
+  Builder->createAssignmentExpression(Lex->getTokenLexeme(TID_Assignment));
+}
+
+void ExpressionToAssignment::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol ExpressionToAssignment::getLHSNonTerminal() const {
+  return nonTerminal(NTID_Expression);
+}
+
+std::vector<Symbol> ExpressionToAssignment::getProducts() const {
+  return {nonTerminal(NTID_LValue), terminal(TID_Assignment),
+          nonTerminal(NTID_RValue)};
+}
+
+ExpressionToRValue::ExpressionToRValue(const Lexer &LexImpl,
+                                       ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void ExpressionToRValue::parse(TokenIterator ItToken) {}
+
+void ExpressionToRValue::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol ExpressionToRValue::getLHSNonTerminal() const {
+  return nonTerminal(NTID_Expression);
+}
+
+std::vector<Symbol> ExpressionToRValue::getProducts() const {
+  return {nonTerminal(NTID_RValue)};
+}
+
+RValueToCall::RValueToCall(const Lexer &LexImpl, ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void RValueToCall::parse(TokenIterator ItToken) {
+  Builder->createFunctionCall(*ItToken);
+}
+
+void RValueToCall::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol RValueToCall::getLHSNonTerminal() const {
+  return nonTerminal(NTID_RValue);
+}
+
+std::vector<Symbol> RValueToCall::getProducts() const {
+  return {terminal(TID_Identifier), terminal(TID_OpenParantheses),
+          nonTerminal(NTID_ParamList), terminal(TID_CloseParantheses)};
+}
+
+RValueToLValue::RValueToLValue(const Lexer &LexImpl,
+                               ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void RValueToLValue::parse(TokenIterator ItToken) {}
+
+void RValueToLValue::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol RValueToLValue::getLHSNonTerminal() const {
+  return nonTerminal(NTID_RValue);
+}
+
+std::vector<Symbol> RValueToLValue::getProducts() const {
+  return {nonTerminal(NTID_LValue)};
+}
+
+RValueToIntegralNumber::RValueToIntegralNumber(const Lexer &LexImpl,
+                                               ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void RValueToIntegralNumber::parse(TokenIterator ItToken) {
+  Builder->createIntegralNumber(*ItToken);
+}
+
+void RValueToIntegralNumber::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol RValueToIntegralNumber::getLHSNonTerminal() const {
+  return nonTerminal(NTID_RValue);
+}
+
+std::vector<Symbol> RValueToIntegralNumber::getProducts() const {
+  return {terminal(TID_IntegralNumber)};
+}
+
+LValueToIdentifier::LValueToIdentifier(const Lexer &LexImpl,
+                                       ASTBuilder &ASTBulderObject)
+    : Lex(&LexImpl), Builder(&ASTBulderObject) {}
+
+void LValueToIdentifier::parse(TokenIterator ItToken) {
+  Builder->createVariable(*ItToken);
+}
+
+void LValueToIdentifier::produceError(CFGParserError Error) {
+  printError(Error, *Lex);
+}
+
+Symbol LValueToIdentifier::getLHSNonTerminal() const {
+  return Symbol(NTID_LValue, false);
+}
+
+std::vector<Symbol> LValueToIdentifier::getProducts() const {
+  return {Symbol(TID_Identifier)};
 }

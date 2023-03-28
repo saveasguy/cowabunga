@@ -1,13 +1,13 @@
 #include "cowabunga/CBC/Tokenizers.h"
 
-#include "cowabunga/CBC/Definitions.h"
-
+#include <optional>
 #include <string_view>
 #include <utility>
 
 using namespace cb;
 
-std::pair<Token, size_t> IdentifierTokenizer::tokenize(std::string_view Word) {
+std::pair<std::optional<Token>, size_t>
+IdentifierTokenizer::tokenize(std::string_view Word) {
   auto *It = Word.cbegin();
   bool Match = It != Word.cend() && (std::isalpha(*It) || *It == '_');
   while (Match && It != Word.cend()) {
@@ -17,13 +17,21 @@ std::pair<Token, size_t> IdentifierTokenizer::tokenize(std::string_view Word) {
     }
   }
   if (It == Word.cbegin()) {
-    return std::make_pair(Token(), 0);
+    return std::make_pair(std::nullopt, 0);
   }
-  auto Result = Token(TokenID::Identifier, TokenPriority::Normal);
+  auto Result = Token(TID_Identifier);
   return std::make_pair(Result, It - Word.cbegin());
 }
 
-std::pair<Token, size_t>
+int IdentifierTokenizer::getTokenID() const {
+  return TID_Identifier;
+}
+
+std::string IdentifierTokenizer::getLexemeString() const {
+  return "identifier";
+}
+
+std::pair<std::optional<Token>, size_t>
 IntegralNumberTokenizer::tokenize(std::string_view Word) {
   bool Match = true;
   auto *It = Word.cbegin();
@@ -34,19 +42,36 @@ IntegralNumberTokenizer::tokenize(std::string_view Word) {
     }
   }
   if (It == Word.cbegin()) {
-    return std::make_pair(Token(), 0);
+    return std::make_pair(std::nullopt, 0);
   }
-  auto Result = Token(TokenID::IntegralNumber, TokenPriority::Normal);
+  auto Result = Token(TID_IntegralNumber);
   return std::make_pair(Result, It - Word.cbegin());
+}
+
+int IntegralNumberTokenizer::getTokenID() const {
+  return TID_IntegralNumber;
+}
+
+std::string IntegralNumberTokenizer::getLexemeString() const {
+  return "integer";
 }
 
 KeywordTokenizer::KeywordTokenizer(TokenID TokID, std::string Keyword)
     : ID(TokID), KeywordString(std::move(Keyword)) {}
 
-std::pair<Token, size_t> KeywordTokenizer::tokenize(std::string_view Word) {
+std::pair<std::optional<Token>, size_t>
+KeywordTokenizer::tokenize(std::string_view Word) {
   if (Word.find(KeywordString)) {
-    return std::make_pair(Token(), 0);
+    return std::make_pair(std::nullopt, 0);
   }
-  auto Result = Token(ID, TokenPriority::High);
+  auto Result = Token(ID);
   return std::make_pair(Result, KeywordString.length());
+}
+
+int KeywordTokenizer::getTokenID() const {
+  return ID;
+}
+
+std::string KeywordTokenizer::getLexemeString() const {
+  return KeywordString;
 }
