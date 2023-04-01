@@ -34,10 +34,7 @@ int main(int argc, char **argv) {
     return 2;
   }
   auto Tokens = Lex.tokenize(Script, argv[1]);
-  for (auto &Token : Tokens) {
-    std::cout << Token << std::endl;
-  }
-  std::cout << std::endl;
+
   ASTBuilder Builder;
   CFGParser Parser(nonTerminal(NTID_TopLevelExpression));
   Parser.addCFGRule(LValueToIdentifier(Lex, Builder))
@@ -51,10 +48,10 @@ int main(int argc, char **argv) {
       .addCFGRule(RValueToCall(Lex, Builder))
       .addCFGRule(ParamListToParam(Lex, Builder))
       .addCFGRule(ParamListToParamList(Lex, Builder));
+
   Parser.parse(Tokens.begin(), Tokens.end());
   auto AST = Builder.release();
-  ASTPrinter Printer(std::cout);
-  AST->acceptASTPass(Printer);
-  std::cout << std::endl;
-  return 0;
+  ASTCodeGen CodeGen;
+  AST->acceptASTPass(CodeGen);
+  return CodeGen.compile();
 }
