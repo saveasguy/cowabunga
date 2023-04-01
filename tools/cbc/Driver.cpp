@@ -1,27 +1,26 @@
-#include "cowabunga/CBC/ASTPasses.h"
 #include "cowabunga/CBC//Parsers.h"
 #include "cowabunga/CBC//Tokenizers.h"
-#include "cowabunga/CBC/Definitions.h"
+#include "cowabunga/CBC/ASTBuilder.h"
+#include "cowabunga/CBC/ASTPasses.h"
 #include "cowabunga/Lexer/Lexer.h"
+#include "cowabunga/Parser/CFGParser.h"
+#include "cowabunga/Parser/Symbol.h"
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 using namespace cb;
 
 int main(int argc, char **argv) {
   Lexer Lex;
-  Lex.addTokenizer(IntegralNumberTokenizer())
-      .addTokenizer(IdentifierTokenizer())
-      .addTokenizer(KeywordTokenizer(ExpressionSeparator, ";"))
-      .addTokenizer(KeywordTokenizer(Assignment, "="))
-      .addTokenizer(KeywordTokenizer(Addition, "+"))
-      .addTokenizer(KeywordTokenizer(Substraction, "-"))
-      .addTokenizer(KeywordTokenizer(ShiftLeft, "<<"))
-      .addTokenizer(KeywordTokenizer(ShiftRight, ">>"))
-      .addTokenizer(KeywordTokenizer(OpenParantheses, "("))
-      .addTokenizer(KeywordTokenizer(CloseParantheses, ")"))
-      .addTokenizer(KeywordTokenizer(Multiplication, "*"));
+  Lex.addTokenizer(IdentifierTokenizer())
+      .addTokenizer(IntegralNumberTokenizer())
+      .addTokenizer(KeywordTokenizer(TID_ExpressionSeparator, ";"))
+      .addTokenizer(KeywordTokenizer(TID_Assignment, "="))
+      .addTokenizer(KeywordTokenizer(TID_OpenParantheses, "("))
+      .addTokenizer(KeywordTokenizer(TID_CloseParantheses, ")"))
+      .addTokenizer(KeywordTokenizer(TID_ArgumentSeparator, ","));
 
   std::ifstream Script;
   if (argc == 2) {
@@ -38,19 +37,22 @@ int main(int argc, char **argv) {
   for (auto &Token : Tokens) {
     std::cout << Token << std::endl;
   }
-  CompoundExpressionParser Parser;
-  auto It = Parser.match(Tokens.cbegin(), Tokens.cend());
-  bool Ok = (It == Tokens.cend());
-  std::cout << Ok << std::endl;
-  if (!Ok) {
-    std::cerr << "Failed to parse input file." << std::endl;
-    return 4;
-  }
-  auto AST = Parser.parse(Tokens.cbegin(), Tokens.cend());
-  if (!AST) {
-    std::cerr << "Failed to build AST." << std::endl;
-    return 4;
-  }
+  std::cout << std::endl;
+  ASTBuilder Builder;
+  CFGParser Parser(nonTerminal(NTID_TopLevelExpression));
+  Parser.addCFGRule(LValueToIdentifier(Lex, Builder))
+      .addCFGRule(RValueToLValue(Lex, Builder))
+      .addCFGRule(RValueToIntegralNumber(Lex, Builder))
+      .addCFGRule(ExpressionToRValue(Lex, Builder))
+      .addCFGRule(CompoundExpressionToSingleExpression(Lex, Builder))
+      .addCFGRule(CompoundExpressionToExpressionSequence(Lex, Builder))
+      .addCFGRule(TopLevelExpressionToCompoundExpression(Lex, Builder))
+      .addCFGRule(ExpressionToAssignment(Lex, Builder))
+      .addCFGRule(RValueToCall(Lex, Builder))
+      .addCFGRule(ParamListToParam(Lex, Builder))
+      .addCFGRule(ParamListToParamList(Lex, Builder));
+  Parser.parse(Tokens.begin(), Tokens.end());
+  auto AST = Builder.release();
   ASTPrinter Printer(std::cout);
   AST->acceptASTPass(Printer);
   std::cout << std::endl;

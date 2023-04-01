@@ -27,7 +27,7 @@ cmake --build build
 ## Usage
 ```
 # Create new file in the project's root directory
-echo "a * (c + d) + 32; (3); (a+(c)); (a * ((a) + (c)));" > main.cb
+echo "a = 2; b = 1; c = 3; d = add(a, b, c); r = add(sub(a, b), d);" > main.cb
 # Run compiler on the created file:
 ./build/tools/cbc/cbc main.cb
 ```
@@ -35,8 +35,8 @@ echo "a * (c + d) + 32; (3); (a+(c)); (a * ((a) + (c)));" > main.cb
 Few examples are provided in this repository. They are placed in *examples/* directory.
 Exaples are built by default.
 ```
-# To run example PrintAST, run the following command:
-./build/examples/PrintAST/PrintAST
+# To run example ParenthesesSequence parser, run the following command:
+./build/examples/ParenthesesSequence/ParenthesesSequence
 ```
 ```
 # To run example PrintTokens, run the following command:

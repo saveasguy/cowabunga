@@ -1,2 +1,2 @@
-add_subdirectory(PrintAST)
+add_subdirectory(ParenthesesSequence)
 add_subdirectory(PrintTokens)

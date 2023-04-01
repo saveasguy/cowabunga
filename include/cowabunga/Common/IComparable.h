@@ -7,9 +7,7 @@ namespace cb {
 
 template <class Derived> class IComparable {
 public:
-  virtual bool less(const Derived &RHS) const = 0;
-
-  virtual bool equals(const Derived &RHS) const = 0;
+  virtual int compare(const Derived &RHS) const = 0;
 
   virtual ~IComparable() = default;
 };
@@ -17,37 +15,37 @@ public:
 template <class Derived>
 bool operator==(const IComparable<Derived> &LHS,
                 const IComparable<Derived> &RHS) {
-  return LHS.equals(static_cast<const Derived &>(RHS));
+  return LHS.compare(static_cast<const Derived &>(RHS)) == 0;
 }
 
 template <class Derived>
 bool operator!=(const IComparable<Derived> &LHS,
                 const IComparable<Derived> &RHS) {
-  return !LHS.equals(static_cast<const Derived &>(RHS));
+  return LHS.compare(static_cast<const Derived &>(RHS));
 }
 
 template <class Derived>
 bool operator<(const IComparable<Derived> &LHS,
                const IComparable<Derived> &RHS) {
-  return LHS.less(static_cast<const Derived &>(RHS));
+  return LHS.compare(static_cast<const Derived &>(RHS)) < 0;
 }
 
 template <class Derived>
 bool operator<=(const IComparable<Derived> &LHS,
                 const IComparable<Derived> &RHS) {
-  return !RHS.less(static_cast<const Derived &>(LHS));
+  return LHS.compare(static_cast<const Derived &>(RHS)) <= 0;
 }
 
 template <class Derived>
 bool operator>(const IComparable<Derived> &LHS,
                const IComparable<Derived> &RHS) {
-  return RHS.less(static_cast<const Derived &>(LHS));
+  return LHS.compare(static_cast<const Derived &>(RHS)) > 0;
 }
 
 template <class Derived>
 bool operator>=(const IComparable<Derived> &LHS,
                 const IComparable<Derived> &RHS) {
-  return !LHS.less(static_cast<const Derived &>(RHS));
+  return LHS.compare(static_cast<const Derived &>(RHS)) >= 0;
 }
 
 } // namespace cb

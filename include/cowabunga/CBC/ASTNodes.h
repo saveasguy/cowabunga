@@ -1,13 +1,14 @@
 #ifndef COWABUNGA_CBC_ASTNODES_H
 #define COWABUNGA_CBC_ASTNODES_H
 
-#include "cowabunga/CBC/Definitions.h"
+#include "cowabunga/CBC/Tokenizers.h"
 #include "cowabunga/Common/IClonableMixin.h"
 #include "cowabunga/Common/IPrintable.h"
 
 #include <memory>
 #include <ostream>
 #include <string>
+#include <vector>
 
 namespace cb {
 
@@ -47,67 +48,33 @@ public:
   std::string Value;
 };
 
-class BinaryExpressionASTNode final
-    : public IClonableMixin<IASTNode, BinaryExpressionASTNode> {
+class AssignmentExpressionASTNode final : public IClonableMixin<IASTNode, AssignmentExpressionASTNode> {
 public:
-  BinaryExpressionASTNode(const Token &Tok,
-                          std::unique_ptr<IASTNode> LHSExpression,
-                          std::unique_ptr<IASTNode> RHSExpression);
+  AssignmentExpressionASTNode(std::string Assignment,
+                            std::unique_ptr<IASTNode> LHSNode, std::unique_ptr<IASTNode> RHSNode);
 
-  BinaryExpressionASTNode(const BinaryExpressionASTNode &RHSBinaryExpression);
+  AssignmentExpressionASTNode(const AssignmentExpressionASTNode &RHS);
 
-  BinaryExpressionASTNode(
-      BinaryExpressionASTNode &&RHSBinaryExpression) noexcept = default;
+  AssignmentExpressionASTNode(AssignmentExpressionASTNode &&RHS) noexcept = default;
 
-  BinaryExpressionASTNode &
-  operator=(const BinaryExpressionASTNode &RHSBinaryExpression);
+  AssignmentExpressionASTNode &operator=(const AssignmentExpressionASTNode &RHS);
 
-  BinaryExpressionASTNode &
-  operator=(BinaryExpressionASTNode &&RHSBinaryExpression) noexcept = default;
+  AssignmentExpressionASTNode &
+  operator=(AssignmentExpressionASTNode &&RHS) noexcept = default;
 
   void acceptASTPass(IASTPass &Pass) override;
 
   void print(std::ostream &Out) const override;
 
-  std::unique_ptr<IASTNode> LHS;
-  std::unique_ptr<IASTNode> RHS;
-  std::string OperatorLexeme;
-  OperatorID OpID;
-};
-
-class ParenthesizedExpressionASTNode final
-    : public IClonableMixin<IASTNode, ParenthesizedExpressionASTNode> {
-public:
-  ParenthesizedExpressionASTNode(const Token &OpenParentheses,
-                                 std::unique_ptr<IASTNode> InternalExpression,
-                                 const Token &CloseParentheses);
-
-  ParenthesizedExpressionASTNode(const ParenthesizedExpressionASTNode &RHS);
-
-  ParenthesizedExpressionASTNode(
-      ParenthesizedExpressionASTNode &&RHS) noexcept = default;
-
-  ParenthesizedExpressionASTNode &
-  operator=(const ParenthesizedExpressionASTNode &RHS);
-
-  ParenthesizedExpressionASTNode &
-  operator=(ParenthesizedExpressionASTNode &&RHS) noexcept = default;
-
-  void acceptASTPass(IASTPass &Pass) override;
-
-  void print(std::ostream &Out) const override;
-
-  std::unique_ptr<IASTNode> Expression;
-  std::string OpenParenthesesLexeme;
-  std::string CloseParenthesesLexeme;
+  std::unique_ptr<IASTNode> LHS, RHS;
+  std::string AssignmentLexeme;
 };
 
 class CompoundExpressionASTNode final
     : public IClonableMixin<IASTNode, CompoundExpressionASTNode> {
 public:
-  CompoundExpressionASTNode(const Token &ExpressionSeparator,
-                            std::unique_ptr<IASTNode> FirstExpression,
-                            std::unique_ptr<IASTNode> ReminingExpression);
+  CompoundExpressionASTNode(std::string ExpressionSeparator,
+                            std::vector<std::unique_ptr<IASTNode>> ExpressionList);
 
   CompoundExpressionASTNode(const CompoundExpressionASTNode &RHS);
 
@@ -122,9 +89,31 @@ public:
 
   void print(std::ostream &Out) const override;
 
-  std::unique_ptr<IASTNode> First;
-  std::unique_ptr<IASTNode> Second;
+  std::vector<std::unique_ptr<IASTNode>> Expressions;
   std::string ExpressionSeparatorLexeme;
+};
+
+class CallExpressionASTNode final
+    : public IClonableMixin<IASTNode, CallExpressionASTNode> {
+public:
+  CallExpressionASTNode(const Token &Tok,
+                            std::vector<std::unique_ptr<IASTNode>> ParamList);
+
+  CallExpressionASTNode(const CallExpressionASTNode &RHS);
+
+  CallExpressionASTNode(CallExpressionASTNode &&RHS) noexcept = default;
+
+  CallExpressionASTNode &operator=(const CallExpressionASTNode &RHS);
+
+  CallExpressionASTNode &
+  operator=(CallExpressionASTNode &&RHS) noexcept = default;
+
+  void acceptASTPass(IASTPass &Pass) override;
+
+  void print(std::ostream &Out) const override;
+
+  std::vector<std::unique_ptr<IASTNode>> Parameters;
+  std::string FuncName;
 };
 
 } // namespace cb

@@ -6,27 +6,23 @@
 
 namespace cb {
 
+/// Token class represents output of Lexer. Token's ID defines identity and
+/// ordering of tokens.
 class Token final : public IComparable<Token>, public IPrintable {
 public:
-  Token();
+  Token(int LexemeID);
 
-  Token(int LexemeID, int LexemePriority = 0);
-
-  bool equals(const Token &RHS) const noexcept;
-
-  bool less(const Token &RHS) const noexcept;
+  int compare(const Token &RHS) const;
 
   void print(std::ostream &Out) const;
 
-  std::string lexeme() const;
+  std::string getFile() const;
 
-  int id() const noexcept;
+  std::string getLine() const;
 
-  int priority() const noexcept;
+  std::string getLexeme() const;
 
-  bool initialized() const noexcept;
-
-  operator bool() const noexcept;
+  int getID() const noexcept;
 
   std::shared_ptr<const std::string> File;
   std::shared_ptr<const std::string> Line;
@@ -36,8 +32,6 @@ public:
 
 private:
   int ID;
-  int Priority;
-  bool Initialized;
 };
 
 } // namespace cb

@@ -13,11 +13,11 @@ public:
 
   virtual void accept(IntegralNumberASTNode &Node) = 0;
 
-  virtual void accept(BinaryExpressionASTNode &Node) = 0;
-
-  virtual void accept(ParenthesizedExpressionASTNode &Node) = 0;
-
+  virtual void accept(AssignmentExpressionASTNode &Node) = 0;
+  
   virtual void accept(CompoundExpressionASTNode &Node) = 0;
+
+  virtual void accept(CallExpressionASTNode &Node) = 0;
 
   virtual ~IASTPass();
 };
@@ -29,12 +29,12 @@ public:
   void accept(VariableASTNode &Node) override;
 
   void accept(IntegralNumberASTNode &Node) override;
-
-  void accept(BinaryExpressionASTNode &Node) override;
-
-  void accept(ParenthesizedExpressionASTNode &Node) override;
-
+  
+  void accept(AssignmentExpressionASTNode &Node) override;
+  
   void accept(CompoundExpressionASTNode &Node) override;
+
+  void accept(CallExpressionASTNode &Node) override;
 
 private:
   void printTreeBranch() const;

@@ -3,5 +3,5 @@ add_library(Lexer
   Lexer.cpp
   Token.cpp
   TokenizerProxy.cpp
-  )
+)
 target_link_libraries(Lexer Common)

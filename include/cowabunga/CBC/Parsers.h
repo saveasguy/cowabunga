@@ -1,115 +1,221 @@
 #ifndef COWABUNGA_CBC_PARSERS_H
 #define COWABUNGA_CBC_PARSERS_H
 
-#include "cowabunga/CBC/ASTNodes.h"
-#include "cowabunga/CBC/Definitions.h"
-#include "cowabunga/CBC/Tokenizers.h"
-#include "cowabunga/Lexer/Token.h"
-#include "cowabunga/Parser/IParser.h"
-#include "cowabunga/Parser/Matchers.h"
-
-#include <array>
-#include <cassert>
-#include <iostream>
-#include <limits>
-#include <memory>
-#include <unistd.h>
-#include <vector>
+#include "cowabunga/CBC/ASTBuilder.h"
+#include "cowabunga/Common/IClonableMixin.h"
+#include "cowabunga/Lexer/Lexer.h"
+#include "cowabunga/Parser/ICFGRule.h"
 
 namespace cb {
 
-class VariableParser final : public IParser<std::unique_ptr<IASTNode>>,
-                             public Terminal<Identifier> {
-public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
+enum NonTerminalID {
+  NTID_TopLevelExpression,
+  NTID_CompoundExpression,
+  NTID_Expression,
+  NTID_RValue,
+  NTID_LValue,
+  NTID_ParamList
 };
 
-class IntegralNumberParser final : public IParser<std::unique_ptr<IASTNode>>,
-                                   public Terminal<IntegralNumber> {
+class ParamListToParamList final
+    : public IClonableMixin<ICFGRule, ParamListToParamList> {
 public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
-};
+  ParamListToParamList(const Lexer &LexImpl,
+                                         ASTBuilder &ASTBulderObject);
 
-class ParenthesizedExpressionParser;
+  void parse(TokenIterator ItToken) override;
 
-class PrimaryExpressionParser final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Optional<IntegralNumberParser, VariableParser,
-                      ParenthesizedExpressionParser> {
-public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
-};
+  void produceError(CFGParserError Error) override;
 
-class BinaryExpressionParser;
+  Symbol getLHSNonTerminal() const override;
 
-class GeneralExpressionParser final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Optional<BinaryExpressionParser, PrimaryExpressionParser> {
-public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
-};
-
-class BinaryExpressionParser final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Sequence<
-          PrimaryExpressionParser,
-          TerminalInRange<BinaryOperatorsRangeBegin, BinaryOperatorsRangeEnd>,
-          GeneralExpressionParser> {
-public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
+  std::vector<Symbol> getProducts() const override;
 
 private:
-  static std::unique_ptr<IASTNode> buildAST(TokenIterator ItMatchedBegin,
-                                            TokenIterator ItMatchedEnd);
-
-  static TokenIterator
-  getLowestPrecedenceBinaryOperatorToken(TokenIterator ItMatchedBegin,
-                                         TokenIterator ItMatchedEnd);
-
-  static bool isBinaryOperator(const Token &Tok);
-
-  static bool isLowerPrecedence(int Precedence, int ComparedToPrecedence,
-                                OperatorAssociativity Associativity);
+  const Lexer *Lex;
+  ASTBuilder *Builder;
 };
 
-class ParenthesizedExpressionParser final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Sequence<Terminal<OpenParantheses>, GeneralExpressionParser,
-                      Terminal<CloseParantheses>> {
+class ParamListToParam final
+    : public IClonableMixin<ICFGRule, ParamListToParam> {
 public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
+  ParamListToParam(const Lexer &LexImpl,
+                                         ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
 };
 
-class ExpressionParser final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Sequence<GeneralExpressionParser, Terminal<ExpressionSeparator>> {
+class TopLevelExpressionToCompoundExpression final
+    : public IClonableMixin<ICFGRule, TopLevelExpressionToCompoundExpression> {
 public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
+  TopLevelExpressionToCompoundExpression(const Lexer &LexImpl,
+                                         ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
 };
 
-class CompoundExpressionParser;
-
-class CompoundExpressionHelper final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Sequence<ExpressionParser, CompoundExpressionParser> {
+class CompoundExpressionToExpressionSequence final
+    : public IClonableMixin<ICFGRule, CompoundExpressionToExpressionSequence> {
 public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
+  CompoundExpressionToExpressionSequence(const Lexer &LexImpl,
+                                         ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
 };
 
-class CompoundExpressionParser final
-    : public IParser<std::unique_ptr<IASTNode>>,
-      public Optional<ExpressionParser, CompoundExpressionHelper> {
+class CompoundExpressionToSingleExpression final
+    : public IClonableMixin<ICFGRule, CompoundExpressionToSingleExpression> {
 public:
-  std::unique_ptr<IASTNode> parse(TokenIterator ItBegin,
-                                  TokenIterator ItEnd) override;
+  CompoundExpressionToSingleExpression(const Lexer &LexImpl,
+                                       ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
+};
+
+class ExpressionToAssignment final
+    : public IClonableMixin<ICFGRule, ExpressionToAssignment> {
+public:
+  ExpressionToAssignment(const Lexer &LexImpl, ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
+};
+
+class ExpressionToRValue final
+    : public IClonableMixin<ICFGRule, ExpressionToRValue> {
+public:
+  ExpressionToRValue(const Lexer &LexImpl, ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
+};
+
+class RValueToCall final : public IClonableMixin<ICFGRule, RValueToCall> {
+public:
+  RValueToCall(const Lexer &LexImpl, ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
+};
+
+class RValueToLValue final : public IClonableMixin<ICFGRule, RValueToLValue> {
+public:
+  RValueToLValue(const Lexer &LexImpl, ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
+};
+
+class RValueToIntegralNumber final
+    : public IClonableMixin<ICFGRule, RValueToIntegralNumber> {
+public:
+  RValueToIntegralNumber(const Lexer &LexImpl, ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
+};
+
+class LValueToIdentifier final
+    : public IClonableMixin<ICFGRule, LValueToIdentifier> {
+public:
+  LValueToIdentifier(const Lexer &LexImpl, ASTBuilder &ASTBulderObject);
+
+  void parse(TokenIterator ItToken) override;
+
+  void produceError(CFGParserError Error) override;
+
+  Symbol getLHSNonTerminal() const override;
+
+  std::vector<Symbol> getProducts() const override;
+
+private:
+  const Lexer *Lex;
+  ASTBuilder *Builder;
 };
 
 } // namespace cb

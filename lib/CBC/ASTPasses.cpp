@@ -10,7 +10,7 @@ void ASTPrinter::accept(VariableASTNode &Node) { Out << Node; }
 
 void ASTPrinter::accept(IntegralNumberASTNode &Node) { Out << Node; }
 
-void ASTPrinter::accept(BinaryExpressionASTNode &Node) {
+void ASTPrinter::accept(AssignmentExpressionASTNode &Node) {
   Out << Node << "\n";
   ++Depth;
   printTreeBranch();
@@ -21,21 +21,26 @@ void ASTPrinter::accept(BinaryExpressionASTNode &Node) {
   --Depth;
 }
 
-void ASTPrinter::accept(ParenthesizedExpressionASTNode &Node) {
-  Out << Node << "\n";
+void ASTPrinter::accept(CompoundExpressionASTNode &Node) {
+  Out << Node;
   ++Depth;
-  printTreeBranch();
-  Node.Expression->acceptASTPass(*this);
+  for (auto &Expression: Node.Expressions) {
+    Out << "\n";
+    printTreeBranch();
+    Expression->acceptASTPass(*this);
+  }
   --Depth;
 }
 
-void ASTPrinter::accept(CompoundExpressionASTNode &Node) {
-  printTreeBranch();
-  Node.First->acceptASTPass(*this);
-  printTreeBranch();
-  Out << "\n" << Node << "\n";
-  printTreeBranch();
-  Node.Second->acceptASTPass(*this);
+void ASTPrinter::accept(CallExpressionASTNode &Node) {
+  Out << Node;
+  ++Depth;
+  for (auto &Param : Node.Parameters) {
+    Out << "\n";
+    printTreeBranch();
+    Param->acceptASTPass(*this);
+  }
+  --Depth;
 }
 
 void ASTPrinter::printTreeBranch() const {

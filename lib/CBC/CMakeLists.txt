@@ -1,7 +1,8 @@
 add_library(CBC
+  ASTBuilder.cpp
   ASTNodes.cpp
   ASTPasses.cpp
-  Definitions.cpp
   Parsers.cpp
-  Tokenizers.cpp)
+  Tokenizers.cpp
+)
 target_link_libraries(CBC Common Lexer Parser)
