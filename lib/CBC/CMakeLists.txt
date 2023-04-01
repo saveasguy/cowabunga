@@ -5,4 +5,5 @@ add_library(CBC
   Parsers.cpp
   Tokenizers.cpp
 )
-target_link_libraries(CBC Common Lexer Parser)
+execute_process(COMMAND llvm-config --libs OUTPUT_VARIABLE LLVM_LIB OUTPUT_STRIP_TRAILING_WHITESPACE)
+target_link_libraries(CBC Common Lexer Parser ${LLVM_LIB})

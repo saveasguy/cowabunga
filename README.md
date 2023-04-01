@@ -7,8 +7,8 @@ To get started, see [Requirements](#requirements) and [Installation](#installati
 
 ## Requirements
 The following required to use "Kaleidoc" compiler:
-* git
-* clang++-15
+* llvm-dev, libllvm, llvm
+* clang
 * cmake 3.13+
 
 ## Installation
@@ -30,6 +30,11 @@ cmake --build build
 echo "a = 2; b = 1; c = 3; d = add(a, b, c); r = add(sub(a, b), d);" > main.cb
 # Run compiler on the created file:
 ./build/tools/cbc/cbc main.cb
+# You will get LLVM IR file and executable
+# Run executable:
+./main
+# Output will be:
+# 7
 ```
 ### Examples
 Few examples are provided in this repository. They are placed in *examples/* directory.
